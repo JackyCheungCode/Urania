@@ -24,6 +24,7 @@ export async function requireRole(allowed: UraniaRole[]) {
   if (!session) throw new Error("Sign in required.");
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError) throw userError;
+  if (!user) throw new Error("Sign in required.");
   const role = user.app_metadata?.urania_role as UraniaRole | undefined;
   if (!role || !allowed.includes(role)) throw new Error("Your account has no Urania workspace role. Ask an administrator.");
   return { session, user, role };
