@@ -24,6 +24,15 @@ const ALLOWED_RPCS = {
   urania_create_product_score: { method: "POST", roles: ["admin", "researcher"] }
 };
 
+function isConfiguredValue(value) {
+  const normalized = typeof value === "string" ? value.trim() : "";
+  return Boolean(normalized && !/^(CONFIGURE_IN_CLOUDFLARE_DASHBOARD|CHANGE_ME|TODO|PLACEHOLDER)$/i.test(normalized));
+}
+
+function backendConfigured(env) {
+  return isConfiguredValue(env.SUPABASE_URL) && isConfiguredValue(env.SUPABASE_PUBLISHABLE_KEY);
+}
+
 function json(body, status = 200, headers = {}) {
   return new Response(JSON.stringify(body), {
     status,
@@ -62,7 +71,7 @@ export async function handle(request, env) {
       status: "ok",
       service: "urania-api",
       version: "0.2.0",
-      supabaseConfigured: Boolean(env.SUPABASE_URL && env.SUPABASE_PUBLISHABLE_KEY),
+      supabaseConfigured: backendConfigured(env),
       timestamp: new Date().toISOString()
     }, 200, headers);
   }
@@ -76,7 +85,7 @@ export async function handle(request, env) {
     }, 200, headers);
   }
   if (url.pathname === "/api/v1/jobs" && request.method === "POST") {
-    if (!env.SUPABASE_URL || !env.SUPABASE_PUBLISHABLE_KEY) return json({ error: "backend_not_configured" }, 503, headers);
+    if (!backendConfigured(env)) return json({ error: "backend_not_configured", message: "Supabase 后端尚未正确配置。请在 Cloudflare Worker 中设置有效的 SUPABASE_URL 和 SUPABASE_PUBLISHABLE_KEY。" }, 503, headers);
     if (!env.URANIA_JOBS || typeof env.URANIA_JOBS.send !== "function") return json({ error: "queue_not_configured" }, 503, headers);
     const authorization = request.headers.get("Authorization") || "";
     if (!authorization.startsWith("Bearer ")) return json({ error: "authentication_required" }, 401, headers);
@@ -151,10 +160,16 @@ export async function handle(request, env) {
   const authorization = request.headers.get("Authorization") || "";
   if (!authorization.startsWith("Bearer ")) return json({ error: "authentication_required" }, 401, headers);
 
-  const authResponse = await fetch(env.SUPABASE_URL.replace(/\/$/, "") + "/auth/v1/user", {
-    headers: { apikey: env.SUPABASE_PUBLISHABLE_KEY, Authorization: authorization }
-  });
-  if (!authResponse.ok) return json({ error: "invalid_session" }, 401, headers);
+  let authResponse;
+  try {
+    authResponse = await fetch(env.SUPABASE_URL.replace(/\/$/, "") + "/auth/v1/user", {
+      headers: { apikey: env.SUPABASE_PUBLISHABLE_KEY, Authorization: authorization }
+    });
+  } catch {
+    return json({ error: "upstream_unavailable", message: "认证服务暂时不可达，请稍后重试。" }, 502, headers);
+  }
+  if (authResponse.status === 401 || authResponse.status === 403) return json({ error: "invalid_session", message: "登录会话已失效，请重新登录。" }, 401, headers);
+  if (!authResponse.ok) return json({ error: "auth_upstream_error", message: "认证服务返回异常，请检查 Supabase 后端配置。" }, 502, headers);
   const user = await authResponse.json();
   const role = user?.app_metadata?.urania_role;
   if (!policy.roles.includes(role)) return json({ error: "role_not_allowed" }, 403, headers);
@@ -169,20 +184,36 @@ export async function handle(request, env) {
     return json({ error: "invalid_json" }, 400, headers);
   }
 
-  const rpcResponse = await fetch(env.SUPABASE_URL.replace(/\/$/, "") + "/rest/v1/rpc/" + functionName, {
-    method: "POST",
-    headers: {
-      apikey: env.SUPABASE_PUBLISHABLE_KEY,
-      Authorization: authorization,
-      "Content-Type": "application/json",
-      "Accept-Profile": "public",
-      "Content-Profile": "public"
-    },
-    body: JSON.stringify(payload)
-  });
+  let rpcResponse;
+  try {
+    rpcResponse = await fetch(env.SUPABASE_URL.replace(/\/$/, "") + "/rest/v1/rpc/" + functionName, {
+      method: "POST",
+      headers: {
+        apikey: env.SUPABASE_PUBLISHABLE_KEY,
+        Authorization: authorization,
+        "Content-Type": "application/json",
+        "Accept-Profile": "public",
+        "Content-Profile": "public"
+      },
+      body: JSON.stringify(payload)
+    });
+  } catch {
+    return json({ error: "upstream_unavailable", message: "数据库服务暂时不可达，请稍后重试。" }, 502, headers);
+  }
   const responseText = await rpcResponse.text();
   let responseBody;
   try { responseBody = JSON.parse(responseText); } catch { responseBody = { error: "invalid_upstream_response" }; }
+  if (!rpcResponse.ok && responseBody && typeof responseBody === "object") {
+    const code = typeof responseBody.code === "string" ? responseBody.code : undefined;
+    const message = typeof responseBody.message === "string" ? responseBody.message : undefined;
+    const errorMap = {
+      "42501": "权限不足：请确认当前账号已分配正确的 Urania 角色。",
+      "P0002": "请求的数据不存在，请刷新页面后重试。",
+      "22023": "提交的数据不符合要求，请检查必填项和字段格式。",
+      "23505": "记录可能已存在，请检查是否重复创建。"
+    };
+    responseBody = { error: responseBody.error || "database_request_failed", ...(code ? { code } : {}), message: errorMap[code] || message || "数据库操作失败，请检查字段和后端配置。" };
+  }
   return json(responseBody, rpcResponse.status, headers);
 }
 
