@@ -31,6 +31,19 @@ export type Database = {
         }
         Returns: Json
       }
+      urania_create_activity: {
+        Args: {
+          p_account_id?: string
+          p_activity_type: string
+          p_body?: string
+          p_contact_id?: string
+          p_direction?: string
+          p_due_at?: string
+          p_opportunity_id?: string
+          p_subject: string
+        }
+        Returns: Json
+      }
       urania_create_collection_job: {
         Args: {
           p_idempotency_key?: string
@@ -77,6 +90,18 @@ export type Database = {
         }
         Returns: Json
       }
+      urania_create_order: {
+        Args: {
+          p_account_id: string
+          p_currency?: string
+          p_delivery_date?: string
+          p_incoterm?: string
+          p_order_date?: string
+          p_quote_id?: string
+          p_total?: number
+        }
+        Returns: Json
+      }
       urania_create_product: {
         Args: {
           p_brand?: string
@@ -86,7 +111,25 @@ export type Database = {
         }
         Returns: Json
       }
+      urania_create_quote: {
+        Args: {
+          p_account_id: string
+          p_currency: string
+          p_incoterm?: string
+          p_items: Json
+          p_opportunity_id?: string
+          p_payment_terms?: string
+          p_shipping_cost?: number
+          p_tax_cost?: number
+          p_valid_until?: string
+        }
+        Returns: Json
+      }
       urania_list_accounts: {
+        Args: { p_limit?: number; p_search?: string }
+        Returns: Json
+      }
+      urania_list_activities: {
         Args: { p_limit?: number; p_search?: string }
         Returns: Json
       }
@@ -103,7 +146,15 @@ export type Database = {
         Args: { p_limit?: number; p_search?: string }
         Returns: Json
       }
+      urania_list_orders: {
+        Args: { p_limit?: number; p_search?: string }
+        Returns: Json
+      }
       urania_list_products: {
+        Args: { p_limit?: number; p_search?: string }
+        Returns: Json
+      }
+      urania_list_quotes: {
         Args: { p_limit?: number; p_search?: string }
         Returns: Json
       }
@@ -120,6 +171,10 @@ export type Database = {
           p_retention_days?: number
           p_status: string
         }
+        Returns: Json
+      }
+      urania_set_quote_status: {
+        Args: { p_quote_id: string; p_status: string }
         Returns: Json
       }
       urania_worker_claim_job: {
