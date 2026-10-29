@@ -361,6 +361,23 @@ export async function createOrder(input:{account_id:string;currency?:string;tota
   return result.data;
 }
 
+export type ApprovalRecord = {
+  id:string; approval_type:"outbound_email"|"report"|"supplier"|"data_source"|"other";
+  subject_type:string; subject_id:string; status:"pending"|"approved"|"rejected"|"cancelled";
+  requested_by:string|null; reviewed_by:string|null; review_note:string|null;
+  requested_at:string; reviewed_at:string|null; payload:Record<string,unknown>;
+};
+export async function listApprovals():Promise<ApprovalRecord[]> {
+  const result=await rpc<{data?:ApprovalRecord[]}>("urania_list_approvals",{p_limit:100},["admin","sales"]);
+  return result.data??[];
+}
+export async function reviewApproval(id:string,decision:"approved"|"rejected",note?:string):Promise<Pick<ApprovalRecord,"id"|"status"|"reviewed_by"|"reviewed_at">> {
+  const result=await rpc<{data:Pick<ApprovalRecord,"id"|"status"|"reviewed_by"|"reviewed_at">}>(
+    "urania_review_approval",{p_approval_id:id,p_decision:decision,p_review_note:note||null},["admin","sales"]
+  );
+  return result.data;
+}
+
 export type ProfitScenarioRecord = {
   id:string;
   scenario_type:"b2c"|"b2b";
