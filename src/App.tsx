@@ -3,7 +3,7 @@ import { supabase } from "./lib/supabase";
 import CRMExtras from "./components/CRMExtras";
 import ProfitCalculator from "./components/ProfitCalculator";
 import ProductScoringPanel from "./components/ProductScoringPanel";
-import { createAccount, createCollectionJob, createContact, createLead, createOpportunity, createProduct, listAccounts, listCollectionJobs, listContacts, listDataSources, listLeads, listOpportunities, listProducts, listApprovals, reviewApproval, listContacts, createEmailApproval, saveProviderCredential, updateProviderState, type ApprovalRecord, type CollectionJobRecord, type AccountRecord, type ContactRecord, type LeadRecord, type OpportunityRecord, type ProductRecord } from "./lib/api";
+import { createAccount, createCollectionJob, createContact, createLead, createOpportunity, createProduct, listAccounts, listCollectionJobs, listContacts, listDataSources, listLeads, listOpportunities, listProducts, listApprovals, reviewApproval, createEmailApproval, saveProviderCredential, updateProviderState, type ApprovalRecord, type CollectionJobRecord, type AccountRecord, type ContactRecord, type LeadRecord, type OpportunityRecord, type ProductRecord } from "./lib/api";
 import {
   Activity, ArrowRight, ArrowUpRight, BarChart3, Bell, Boxes, ClipboardList,
   Building2, Check, ChevronDown, CircleHelp, Clock3, Command, Compass, Database,
