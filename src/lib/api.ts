@@ -247,3 +247,60 @@ export async function createOpportunity(input: {
   },["admin","sales"]);
   return result.data;
 }
+
+
+export type ActivityRecord = {
+  id:string; account_id:string|null; contact_id:string|null; opportunity_id:string|null;
+  activity_type:string; subject:string; body:string|null; due_at:string|null; completed_at:string|null;
+  direction:string|null; created_by:string|null; created_at:string; company_name:string|null;
+  contact_name:string|null; opportunity_name:string|null;
+};
+export type QuoteRecord = {
+  id:string; account_id:string; opportunity_id:string|null; quote_number:string; version:number;
+  status:string; currency:string; valid_until:string|null; incoterm:string|null; payment_terms:string|null;
+  subtotal:number; shipping_cost:number; tax_cost:number; total:number; created_at:string; company_name:string;
+};
+export type OrderRecord = {
+  id:string; account_id:string; quote_id:string|null; order_number:string; status:string; currency:string;
+  total:number; incoterm:string|null; payment_status:string; order_date:string|null; delivery_date:string|null;
+  created_at:string; company_name:string;
+};
+export async function listActivities(search=""):Promise<ActivityRecord[]> {
+  const result=await rpc<{data?:ActivityRecord[]}>("urania_list_activities",{p_search:search||null,p_limit:100},["admin","sales"]);
+  return result.data??[];
+}
+export async function createActivity(input:{activity_type:string;subject:string;account_id?:string|null;contact_id?:string|null;opportunity_id?:string|null;body?:string;due_at?:string|null;direction?:string}):Promise<Partial<ActivityRecord>> {
+  const result=await rpc<{data:Partial<ActivityRecord>}>("urania_create_activity",{
+    p_activity_type:input.activity_type,p_subject:input.subject,p_account_id:input.account_id||null,
+    p_contact_id:input.contact_id||null,p_opportunity_id:input.opportunity_id||null,p_body:input.body||null,
+    p_due_at:input.due_at||null,p_direction:input.direction||"internal"
+  },["admin","sales"]);
+  return result.data;
+}
+export async function listQuotes(search=""):Promise<QuoteRecord[]> {
+  const result=await rpc<{data?:QuoteRecord[]}>("urania_list_quotes",{p_search:search||null,p_limit:100},["admin","sales"]);
+  return result.data??[];
+}
+export async function createQuote(input:{account_id:string;currency:string;items:Array<{description:string;quantity:number;unit_price:number}>;opportunity_id?:string|null;valid_until?:string|null;incoterm?:string;payment_terms?:string;shipping_cost?:number;tax_cost?:number}):Promise<Partial<QuoteRecord>> {
+  const result=await rpc<{data:Partial<QuoteRecord>}>("urania_create_quote",{
+    p_account_id:input.account_id,p_currency:input.currency,p_items:input.items,p_opportunity_id:input.opportunity_id||null,
+    p_valid_until:input.valid_until||null,p_incoterm:input.incoterm||null,p_payment_terms:input.payment_terms||null,
+    p_shipping_cost:input.shipping_cost||0,p_tax_cost:input.tax_cost||0
+  },["admin","sales"]);
+  return result.data;
+}
+export async function setQuoteStatus(quoteId:string,status:string):Promise<Partial<QuoteRecord>> {
+  const result=await rpc<{data:Partial<QuoteRecord>}>("urania_set_quote_status",{p_quote_id:quoteId,p_status:status},["admin","sales"]);
+  return result.data;
+}
+export async function listOrders(search=""):Promise<OrderRecord[]> {
+  const result=await rpc<{data?:OrderRecord[]}>("urania_list_orders",{p_search:search||null,p_limit:100},["admin","sales"]);
+  return result.data??[];
+}
+export async function createOrder(input:{account_id:string;currency?:string;total?:number|null;quote_id?:string|null;incoterm?:string;order_date?:string|null;delivery_date?:string|null}):Promise<Partial<OrderRecord>> {
+  const result=await rpc<{data:Partial<OrderRecord>}>("urania_create_order",{
+    p_account_id:input.account_id,p_currency:input.currency||"USD",p_total:input.total??null,
+    p_quote_id:input.quote_id||null,p_incoterm:input.incoterm||null,p_order_date:input.order_date||null,p_delivery_date:input.delivery_date||null
+  },["admin","sales"]);
+  return result.data;
+}
