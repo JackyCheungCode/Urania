@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { supabase } from "./lib/supabase";
-import { createAccount, createCollectionJob, createProduct, listAccounts, listDataSources, listLeads, listProducts, updateProviderState, type AccountRecord, type LeadRecord, type ProductRecord } from "./lib/api";
+import { createAccount, createCollectionJob, createContact, createLead, createOpportunity, createProduct, listAccounts, listContacts, listDataSources, listLeads, listOpportunities, listProducts, updateProviderState, type AccountRecord, type ContactRecord, type LeadRecord, type OpportunityRecord, type ProductRecord } from "./lib/api";
 import {
   Activity, ArrowRight, ArrowUpRight, BarChart3, Bell, Boxes,
   Building2, Check, ChevronDown, CircleHelp, Clock3, Command, Compass, Database,
@@ -272,66 +272,112 @@ function Research({ filter, setFilter, data, query, toast }: { filter: string; s
 }
 
 function CRM({ data, toast }: { data: typeof leads; toast: (s: string) => void }) {
-  const [tab, setTab] = useState<"accounts" | "leads">("accounts");
+  const [tab, setTab] = useState<"accounts" | "contacts" | "leads" | "opportunities">("accounts");
   const [accounts, setAccounts] = useState<AccountRecord[]>([]);
+  const [contacts, setContacts] = useState<ContactRecord[]>([]);
   const [liveLeads, setLiveLeads] = useState<LeadRecord[]>([]);
+  const [opportunities, setOpportunities] = useState<OpportunityRecord[]>([]);
   const [loading, setLoading] = useState(Boolean(supabase));
   const [error, setError] = useState("");
-  const [formOpen, setFormOpen] = useState(false);
+  const [formKind, setFormKind] = useState<"account" | "contact" | "lead" | "opportunity" | null>(null);
   const [saving, setSaving] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
   const [companyName, setCompanyName] = useState("");
   const [website, setWebsite] = useState("");
   const [country, setCountry] = useState("");
   const [industry, setIndustry] = useState("");
   const [accountType, setAccountType] = useState("importer");
-  const [role, setRole] = useState<string | null>(null);
+  const [contactAccountId, setContactAccountId] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [contactTitle, setContactTitle] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [contactBasis, setContactBasis] = useState("legitimate interest");
+  const [contactDnc, setContactDnc] = useState(false);
+  const [leadName, setLeadName] = useState("");
+  const [leadAccountId, setLeadAccountId] = useState("");
+  const [leadSourceUrl, setLeadSourceUrl] = useState("");
+  const [leadNextDate, setLeadNextDate] = useState("");
+  const [opportunityName, setOpportunityName] = useState("");
+  const [opportunityAccountId, setOpportunityAccountId] = useState("");
+  const [opportunityAmount, setOpportunityAmount] = useState("");
+  const [opportunityCurrency, setOpportunityCurrency] = useState("USD");
+  const [opportunityProbability, setOpportunityProbability] = useState("10");
+  const [opportunityCloseDate, setOpportunityCloseDate] = useState("");
+  const [opportunityStage, setOpportunityStage] = useState("qualification");
   const isLive = Boolean(supabase);
+  const canManageSales = !isLive || role==="admin" || role==="sales";
 
   async function reload() {
     if (!supabase) return;
     setLoading(true); setError("");
     try {
-      const [accountRows, leadRows, { data: userData }] = await Promise.all([
-        listAccounts(),
-        listLeads(),
-        supabase.auth.getUser(),
-      ]);
-      setAccounts(accountRows);
-      setLiveLeads(leadRows);
-      setRole((userData.user?.app_metadata?.urania_role as string | undefined) ?? null);
+      const {data:userData} = await supabase.auth.getUser();
+      const nextRole = (userData.user?.app_metadata?.urania_role as string | undefined) ?? null;
+      const [accountRows, leadRows] = await Promise.all([listAccounts(),listLeads()]);
+      setAccounts(accountRows); setLiveLeads(leadRows); setRole(nextRole);
+      if (nextRole==="admin" || nextRole==="sales") {
+        const [contactRows,opportunityRows] = await Promise.all([listContacts(),listOpportunities()]);
+        setContacts(contactRows); setOpportunities(opportunityRows);
+      } else { setContacts([]); setOpportunities([]); }
     } catch (e) {
       setError(e instanceof Error ? e.message : "读取 CRM 数据失败。");
     } finally { setLoading(false); }
   }
-
   useEffect(() => { void reload(); }, []);
 
   async function saveAccount(event: FormEvent) {
-    event.preventDefault();
-    setSaving(true); setError("");
+    event.preventDefault(); setSaving(true); setError("");
     try {
-      await createAccount({company_name:companyName,website_url:website || null,country_code:country || null,industry:industry || null,account_type:accountType});
-      setCompanyName(""); setWebsite(""); setCountry(""); setIndustry(""); setFormOpen(false);
-      toast("企业已保存到 Urania CRM");
-      await reload();
-    } catch (e) { setError(e instanceof Error ? e.message : "保存企业失败。"); }
-    finally { setSaving(false); }
+      await createAccount({company_name:companyName,website_url:website||null,country_code:country||null,industry:industry||null,account_type:accountType});
+      setCompanyName("");setWebsite("");setCountry("");setIndustry("");setFormKind(null);toast("企业已保存到 Urania CRM");await reload();
+    } catch(e) { setError(e instanceof Error?e.message:"保存企业失败。"); } finally { setSaving(false); }
+  }
+  async function saveContact(event: FormEvent) {
+    event.preventDefault();setSaving(true);setError("");
+    try {
+      await createContact({account_id:contactAccountId,full_name:contactName,job_title:contactTitle||undefined,work_email:contactEmail||undefined,phone:contactPhone||undefined,lawful_basis:contactBasis,do_not_contact:contactDnc});
+      setContactName("");setContactTitle("");setContactEmail("");setContactPhone("");setContactDnc(false);setFormKind(null);toast("联系人已保存；首次开发仍需单独审批");await reload();
+    } catch(e) { setError(e instanceof Error?e.message:"保存联系人失败。"); } finally { setSaving(false); }
+  }
+  async function saveLead(event: FormEvent) {
+    event.preventDefault();setSaving(true);setError("");
+    try {
+      await createLead({lead_name:leadName,account_id:leadAccountId||null,source_url:leadSourceUrl||null,next_action_at:leadNextDate?new Date(leadNextDate).toISOString():null});
+      setLeadName("");setLeadSourceUrl("");setLeadNextDate("");setFormKind(null);toast("销售线索已创建");await reload();
+    } catch(e) { setError(e instanceof Error?e.message:"保存线索失败。"); } finally { setSaving(false); }
+  }
+  async function saveOpportunity(event: FormEvent) {
+    event.preventDefault();setSaving(true);setError("");
+    try {
+      await createOpportunity({account_id:opportunityAccountId,name:opportunityName,amount:opportunityAmount===""?null:Number(opportunityAmount),currency:opportunityCurrency,probability:Number(opportunityProbability)/100,expected_close_date:opportunityCloseDate||null,stage:opportunityStage});
+      setOpportunityName("");setOpportunityAmount("");setOpportunityCloseDate("");setFormKind(null);toast("商机已创建");await reload();
+    } catch(e) { setError(e instanceof Error?e.message:"保存商机失败。"); } finally { setSaving(false); }
   }
 
   const demoRows = data;
   const liveRows = liveLeads;
+  const newLabel = ({accounts:"新建企业",contacts:"新建联系人",leads:"新建线索",opportunities:"新建商机"} as const)[tab];
+  const chooseForm = () => setFormKind(current => current===tab?null:tab==="accounts"?"account":tab==="contacts"?"contact":tab==="leads"?"lead":"opportunity");
 
   return <>
-    <div className="crm-metrics"><MetricCard label="企业账户" value={isLive ? String(accounts.length) : "248"} change={isLive ? "实时数据库" : "+18"} icon={Building2} tone="blue" note={isLive ? "真实记录" : "演示数据"} /><MetricCard label="销售线索" value={isLive ? String(liveLeads.length) : "32"} change={isLive ? "数据库记录" : "8 个逾期"} icon={ListTodo} tone="orange" note={isLive ? "真实记录" : "需要处理"} /><MetricCard label="已验证账户" value={isLive ? String(accounts.filter(x=>x.verification_status==="human_verified").length) : "84 / 100"} change={isLive ? "人工验证" : "+5.1"} icon={Target} tone="purple" note={isLive ? "来源可追溯" : "样例评分"} /></div>
+    <div className="crm-metrics"><MetricCard label="企业账户" value={isLive?String(accounts.length):"248"} change={isLive?"实时数据库":"+18"} icon={Building2} tone="blue" note={isLive?"真实记录":"演示数据"}/><MetricCard label="销售线索" value={isLive?String(liveLeads.length):"32"} change={isLive?"数据库记录":"8 个逾期"} icon={ListTodo} tone="orange" note={isLive?"真实记录":"需要处理"}/><MetricCard label="商机金额" value={isLive?opportunities.reduce((sum,o)=>sum+(Number(o.amount)||0),0).toLocaleString("en-US",{style:"currency",currency:"USD",maximumFractionDigits:0}):"$184K"} change={isLive?"仅 USD 近似汇总":"示例金额"} icon={Target} tone="purple" note={isLive?"多币种未换汇":"演示数据"}/></div>
     <section className="panel">
-      <div className="crm-toolbar"><div><SectionTitle title="CRM 工作区" /><p className="panel-subtitle">{isLive ? "已连接 Supabase RPC；记录来自当前 Urania 数据库。" : "集中管理企业账户、联系人和销售线索。"}</p></div><div className="summary-actions">{isLive && <button className="button button--secondary" onClick={()=>void reload()}><Activity size={14}/>刷新</button>}{(!isLive || role==="admin" || role==="sales") && <button className="button button--primary" onClick={()=>setFormOpen(v=>!v)}><Plus size={15}/>{formOpen?"关闭表单":"新建企业"}</button>}</div></div>
-      <div className="crm-tabs"><button className={tab==="accounts"?"crm-tab crm-tab--active":"crm-tab"} onClick={()=>setTab("accounts")}>企业账户 <span>{isLive?accounts.length:"4"}</span></button><button className={tab==="leads"?"crm-tab crm-tab--active":"crm-tab"} onClick={()=>setTab("leads")}>销售线索 <span>{isLive?liveLeads.length:"4"}</span></button></div>
-      {formOpen && <form className="account-form" onSubmit={saveAccount}><div className="account-form-heading"><strong>新建企业账户</strong><span>必填字段将写入 CRM，并记录审计事件。</span></div><div className="account-form-grid"><label>企业名称 *<input required minLength={2} maxLength={200} value={companyName} onChange={e=>setCompanyName(e.target.value)} placeholder="Company name"/></label><label>官网<input type="url" value={website} onChange={e=>setWebsite(e.target.value)} placeholder="https://example.com"/></label><label>国家代码<input maxLength={2} pattern="[A-Za-z]{2}" value={country} onChange={e=>setCountry(e.target.value.toUpperCase())} placeholder="DE / US / GB"/></label><label>行业<input value={industry} onChange={e=>setIndustry(e.target.value)} placeholder="Import / Retail / ..."/></label><label>企业类型<select value={accountType} onChange={e=>setAccountType(e.target.value)}><option value="importer">进口商</option><option value="distributor">分销商</option><option value="retailer">零售商</option><option value="brand">品牌</option><option value="manufacturer">制造商</option><option value="wholesaler">批发商</option><option value="service_provider">服务商</option><option value="unknown">未知</option></select></label></div>{error&&<p className="auth-error" role="alert">{error}</p>}<div className="account-form-actions"><button type="button" className="button button--secondary" onClick={()=>setFormOpen(false)}>取消</button><button type="submit" className="button button--primary" disabled={saving}>{saving?"保存中…":"保存企业"}</button></div></form>}
-      {error && !formOpen && <div className="inline-error" role="alert"><ShieldCheck size={15}/><span>{error}</span><button onClick={()=>void reload()}>重试</button></div>}
-      {loading ? <div className="empty-state"><Activity size={24}/><strong>正在读取 CRM 数据…</strong></div> : tab==="accounts" ? <div className="table-wrap"><table><thead><tr><th>企业</th><th>国家</th><th>行业</th><th>企业类型</th><th>验证状态</th><th>生命周期</th></tr></thead><tbody>{(isLive?accounts:demoRows.map((x,i)=>({id:String(i),company_name:x.company,website_url:null,domain:null,country_code:null,industry:x.product,account_type:x.type.split(" / ")[0],lifecycle_stage:"prospect",verification_status:"unverified",owner_id:null,created_at:"",updated_at:""} as AccountRecord))).map((account)=> <tr key={account.id}><td><div className="company-cell"><span className="company-avatar company-avatar--blue">{account.company_name.slice(0,2).toUpperCase()}</span><span><strong>{account.company_name}</strong><small>{account.domain || account.website_url || "尚未验证官网"}</small></span></div></td><td>{account.country_code || "—"}</td><td>{account.industry || "—"}</td><td>{account.account_type}</td><td><Badge tone={account.verification_status==="human_verified"?"green":"amber"}>{account.verification_status}</Badge></td><td><Badge>{account.lifecycle_stage}</Badge></td></tr>)}</tbody></table>{(isLive?accounts.length:demoRows.length)===0&&<div className="empty-state"><Building2 size={26}/><strong>还没有企业账户</strong><span>创建第一条企业记录，数据将保存到 Supabase。</span></div>}</div> : <div className="table-wrap"><table><thead><tr><th>线索</th><th>关联企业</th><th>国家</th><th>状态</th><th>匹配评分</th><th>下一步</th></tr></thead><tbody>{(isLive?liveRows:demoRows.map((x,i)=>({id:String(i),lead_name:x.company,status:x.stage,score:x.fit,source_url:null,next_action_at:null,created_at:"",company_name:x.company,country_code:null,contact_name:null} as LeadRecord))).map((lead)=> <tr key={lead.id}><td><strong>{lead.lead_name}</strong><small className="table-secondary">{lead.contact_name || "无联系人"}</small></td><td>{lead.company_name || "—"}</td><td>{lead.country_code || "—"}</td><td><Badge tone={lead.status==="qualified"||lead.status==="converted"?"green":"amber"}>{lead.status}</Badge></td><td>{lead.score===null?"—":lead.score}</td><td>{lead.next_action_at ? new Date(lead.next_action_at).toLocaleDateString() : "未安排"}</td></tr>)}</tbody></table>{(isLive?liveRows.length:demoRows.length)===0&&<div className="empty-state"><Users size={26}/><strong>还没有销售线索</strong><span>先添加企业账户，再开始线索开发。</span></div>}</div>}
-      <div className="panel-note"><ShieldCheck size={14}/>{isLive?"数据通过角色受限的 Supabase RPC 读取；写操作需后端角色验证并写入审计日志。":"演示企业仅用于预览，不代表真实客户。连接数据库后将显示真实记录。"}</div>
+      <div className="crm-toolbar"><div><SectionTitle title="CRM 工作区"/><p className="panel-subtitle">{isLive?"已连接 Supabase RPC；联系人与商机仅对销售和管理员开放。":"集中管理企业、联系人、线索和商机。"}</p></div><div className="summary-actions">{isLive&&<button className="button button--secondary" onClick={()=>void reload()}><Activity size={14}/>刷新</button>}{canManageSales&&<button className="button button--primary" onClick={chooseForm}><Plus size={15}/>{formKind? "关闭表单":newLabel}</button>}</div></div>
+      <div className="crm-tabs"><button className={tab==="accounts"?"crm-tab crm-tab--active":"crm-tab"} onClick={()=>{setTab("accounts");setFormKind(null)}}>企业账户 <span>{isLive?accounts.length:"4"}</span></button>{canManageSales&&<button className={tab==="contacts"?"crm-tab crm-tab--active":"crm-tab"} onClick={()=>{setTab("contacts");setFormKind(null)}}>联系人 <span>{isLive?contacts.length:"—"}</span></button>}<button className={tab==="leads"?"crm-tab crm-tab--active":"crm-tab"} onClick={()=>{setTab("leads");setFormKind(null)}}>销售线索 <span>{isLive?liveLeads.length:"4"}</span></button>{canManageSales&&<button className={tab==="opportunities"?"crm-tab crm-tab--active":"crm-tab"} onClick={()=>{setTab("opportunities");setFormKind(null)}}>商机 <span>{isLive?opportunities.length:"—"}</span></button>}</div>
+      {formKind==="account"&&<form className="account-form" onSubmit={saveAccount}><div className="account-form-heading"><strong>新建企业账户</strong><span>企业数据写入 CRM 并记录审计事件。</span></div><div className="account-form-grid"><label>企业名称 *<input required minLength={2} maxLength={200} value={companyName} onChange={e=>setCompanyName(e.target.value)} placeholder="Company name"/></label><label>官网<input type="url" value={website} onChange={e=>setWebsite(e.target.value)} placeholder="https://example.com"/></label><label>国家代码<input maxLength={2} pattern="[A-Za-z]{2}" value={country} onChange={e=>setCountry(e.target.value.toUpperCase())} placeholder="DE / US / GB"/></label><label>行业<input value={industry} onChange={e=>setIndustry(e.target.value)} placeholder="Import / Retail / ..."/></label><label>企业类型<select value={accountType} onChange={e=>setAccountType(e.target.value)}><option value="importer">进口商</option><option value="distributor">分销商</option><option value="retailer">零售商</option><option value="brand">品牌</option><option value="manufacturer">制造商</option><option value="wholesaler">批发商</option><option value="service_provider">服务商</option><option value="unknown">未知</option></select></label></div><FormActions saving={saving} onCancel={()=>setFormKind(null)} label="保存企业"/></form>}
+      {formKind==="contact"&&<form className="account-form" onSubmit={saveContact}><div className="account-form-heading"><strong>新建联系人</strong><span>记录业务联系方式前必须注明处理依据；请勿导入未经授权的个人资料。</span></div><div className="account-form-grid"><label>关联企业 *<select required value={contactAccountId} onChange={e=>setContactAccountId(e.target.value)}><option value="">选择企业…</option>{accounts.map(a=><option key={a.id} value={a.id}>{a.company_name}</option>)}</select></label><label>姓名 *<input required minLength={2} maxLength={200} value={contactName} onChange={e=>setContactName(e.target.value)} placeholder="Full name"/></label><label>职位<input value={contactTitle} onChange={e=>setContactTitle(e.target.value)} placeholder="Purchasing Manager"/></label><label>工作邮箱<input type="email" value={contactEmail} onChange={e=>setContactEmail(e.target.value)} placeholder="name@company.com"/></label><label>电话<input value={contactPhone} onChange={e=>setContactPhone(e.target.value)} placeholder="+1…"/></label><label>处理依据 *<select required value={contactBasis} onChange={e=>setContactBasis(e.target.value)}><option value="legitimate interest">合法利益（需评估）</option><option value="consent">已取得同意</option><option value="contract">合同必要</option><option value="other documented basis">其他已记录依据</option></select></label></div><label className="provider-attestation"><input type="checkbox" checked={contactDnc} onChange={e=>setContactDnc(e.target.checked)}/><span>禁止联系此联系人（Do Not Contact）</span></label><FormActions saving={saving} onCancel={()=>setFormKind(null)} label="保存联系人"/></form>}
+      {formKind==="lead"&&<form className="account-form" onSubmit={saveLead}><div className="account-form-heading"><strong>新建销售线索</strong><span>线索可以暂时不关联企业；来源和下一步动作应尽量补全。</span></div><div className="account-form-grid"><label>线索名称 *<input required minLength={2} maxLength={200} value={leadName} onChange={e=>setLeadName(e.target.value)} placeholder="Potential distributor in Germany"/></label><label>关联企业<select value={leadAccountId} onChange={e=>setLeadAccountId(e.target.value)}><option value="">暂不关联</option>{accounts.map(a=><option key={a.id} value={a.id}>{a.company_name}</option>)}</select></label><label>来源网址<input type="url" value={leadSourceUrl} onChange={e=>setLeadSourceUrl(e.target.value)} placeholder="https://…"/></label><label>下一步日期<input type="date" value={leadNextDate} onChange={e=>setLeadNextDate(e.target.value)}/></label></div><FormActions saving={saving} onCancel={()=>setFormKind(null)} label="保存线索"/></form>}
+      {formKind==="opportunity"&&<form className="account-form" onSubmit={saveOpportunity}><div className="account-form-heading"><strong>新建商机</strong><span>金额按所选币种保存；汇总不会在未换汇时混合不同币种。</span></div><div className="account-form-grid"><label>关联企业 *<select required value={opportunityAccountId} onChange={e=>setOpportunityAccountId(e.target.value)}><option value="">选择企业…</option>{accounts.map(a=><option key={a.id} value={a.id}>{a.company_name}</option>)}</select></label><label>商机名称 *<input required minLength={2} maxLength={240} value={opportunityName} onChange={e=>setOpportunityName(e.target.value)} placeholder="Q4 wholesale supply"/></label><label>预估金额<input type="number" min="0" step="0.01" value={opportunityAmount} onChange={e=>setOpportunityAmount(e.target.value)} placeholder="0.00"/></label><label>币种<select value={opportunityCurrency} onChange={e=>setOpportunityCurrency(e.target.value)}><option>USD</option><option>EUR</option><option>GBP</option><option>CNY</option><option>PLN</option></select></label><label>成交概率（%）<input type="number" min="0" max="100" value={opportunityProbability} onChange={e=>setOpportunityProbability(e.target.value)}/></label><label>预计成交日期<input type="date" value={opportunityCloseDate} onChange={e=>setOpportunityCloseDate(e.target.value)}/></label><label>阶段<select value={opportunityStage} onChange={e=>setOpportunityStage(e.target.value)}><option value="qualification">资格确认</option><option value="discovery">需求发现</option><option value="proposal">方案 / 报价</option><option value="negotiation">谈判</option><option value="won">赢单</option><option value="lost">丢单</option></select></label></div><FormActions saving={saving} onCancel={()=>setFormKind(null)} label="保存商机"/></form>}
+      {error&&!formKind&&<div className="inline-error" role="alert"><ShieldCheck size={15}/><span>{error}</span><button onClick={()=>void reload()}>重试</button></div>}
+      {loading?<div className="empty-state"><Activity size={24}/><strong>正在读取 CRM 数据…</strong></div>:tab==="accounts"?<div className="table-wrap"><table><thead><tr><th>企业</th><th>国家</th><th>行业</th><th>企业类型</th><th>验证状态</th><th>生命周期</th></tr></thead><tbody>{(isLive?accounts:demoRows.map((x,i)=>({id:String(i),company_name:x.company,website_url:null,domain:null,country_code:null,industry:x.product,account_type:x.type.split(" / ")[0],lifecycle_stage:"prospect",verification_status:"unverified",owner_id:null,created_at:"",updated_at:""} as AccountRecord))).map(a=><tr key={a.id}><td><div className="company-cell"><span className="company-avatar company-avatar--blue">{a.company_name.slice(0,2).toUpperCase()}</span><span><strong>{a.company_name}</strong><small>{a.domain||a.website_url||"尚未验证官网"}</small></span></div></td><td>{a.country_code||"—"}</td><td>{a.industry||"—"}</td><td>{a.account_type}</td><td><Badge tone={a.verification_status==="human_verified"?"green":"amber"}>{a.verification_status}</Badge></td><td><Badge>{a.lifecycle_stage}</Badge></td></tr>)}</tbody></table>{(isLive?accounts.length:demoRows.length)===0&&<div className="empty-state"><Building2 size={26}/><strong>还没有企业账户</strong><span>创建第一条企业记录，数据将保存到 Supabase。</span></div>}</div>:tab==="contacts"?<div className="table-wrap"><table><thead><tr><th>联系人</th><th>企业</th><th>工作邮箱</th><th>处理依据</th><th>联系状态</th><th>验证</th></tr></thead><tbody>{contacts.map(x=><tr key={x.id}><td><strong>{x.full_name}</strong><small className="table-secondary">{x.job_title||"未填写职位"}</small></td><td>{x.company_name}</td><td>{x.work_email||"—"}</td><td>{x.lawful_basis||"未记录"}</td><td><Badge tone={x.do_not_contact?"red":"neutral"}>{x.do_not_contact?"禁止联系":x.consent_status}</Badge></td><td><Badge>{x.verification_status}</Badge></td></tr>)}</tbody></table>{contacts.length===0&&<div className="empty-state"><Users size={26}/><strong>暂无联系人</strong><span>创建联系人前先核验数据来源与处理依据。</span></div>}</div>:tab==="leads"?<div className="table-wrap"><table><thead><tr><th>线索</th><th>关联企业</th><th>国家</th><th>状态</th><th>匹配评分</th><th>下一步</th></tr></thead><tbody>{(isLive?liveRows:demoRows.map((x,i)=>({id:String(i),lead_name:x.company,status:x.stage,score:x.fit,source_url:null,next_action_at:null,created_at:"",company_name:x.company,country_code:null,contact_name:null} as LeadRecord))).map(x=><tr key={x.id}><td><strong>{x.lead_name}</strong><small className="table-secondary">{x.contact_name||"无联系人"}</small></td><td>{x.company_name||"—"}</td><td>{x.country_code||"—"}</td><td><Badge tone={x.status==="qualified"||x.status==="converted"?"green":"amber"}>{x.status}</Badge></td><td>{x.score===null?"—":x.score}</td><td>{x.next_action_at?new Date(x.next_action_at).toLocaleDateString():"未安排"}</td></tr>)}</tbody></table>{(isLive?liveRows.length:demoRows.length)===0&&<div className="empty-state"><Users size={26}/><strong>还没有销售线索</strong><span>先添加企业账户，再开始线索开发。</span></div>}</div>:<div className="table-wrap"><table><thead><tr><th>商机</th><th>企业</th><th>阶段</th><th>金额</th><th>概率</th><th>预计成交</th></tr></thead><tbody>{opportunities.map(x=><tr key={x.id}><td><strong>{x.name}</strong></td><td>{x.company_name}</td><td><Badge tone={x.stage==="won"?"green":x.stage==="lost"?"red":"neutral"}>{x.stage}</Badge></td><td>{x.amount===null?"—":new Intl.NumberFormat("en-US",{style:"currency",currency:x.currency||"USD"}).format(Number(x.amount))}</td><td>{x.probability===null?"—":Math.round(Number(x.probability)*100)+"%"}</td><td>{x.expected_close_date||"—"}</td></tr>)}</tbody></table>{opportunities.length===0&&<div className="empty-state"><Target size={26}/><strong>暂无商机</strong><span>将已确认需求转为商机，记录金额、阶段和预计成交日期。</span></div>}</div>}
+      <div className="panel-note"><ShieldCheck size={14}/>{isLive?"企业、联系人、线索和商机均通过角色受限 RPC 读写；联系人包含处理依据与禁止联系标记。":"演示企业仅用于预览，不代表真实客户。"}</div>
     </section>
   </>;
+}
+
+function FormActions({saving,onCancel,label}:{saving:boolean;onCancel:()=>void;label:string}) {
+  return <div className="account-form-actions"><button type="button" className="button button--secondary" onClick={onCancel}>取消</button><button type="submit" className="button button--primary" disabled={saving}>{saving?"保存中…":label}</button></div>;
 }
 
 function Intelligence({ toast }: { toast: (s: string) => void }) {
