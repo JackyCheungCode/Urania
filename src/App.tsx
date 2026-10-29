@@ -17,7 +17,7 @@ type NavItem = { id: Page; label: string; icon: typeof LayoutDashboard; badge?: 
 
 const primaryNav: NavItem[] = [
   { id: "overview", label: "工作台", icon: LayoutDashboard },
-  { id: "research", label: "产品研究", icon: Compass, badge: "12" },
+  { id: "research", label: "产品研究", icon: Compass },
   { id: "crm", label: "CRM 客户", icon: Users },
   { id: "intelligence", label: "数据情报", icon: Globe2 },
   { id: "automation", label: "自动化中心", icon: Workflow },
@@ -174,7 +174,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => Promise<void> }) {
         </button>)}
       </nav>
       <div className="sidebar-spacer" />
-      <div className="sidebar-status"><span className="status-dot" /><div><strong>系统运行正常</strong><span>数据源状态需要配置</span></div><MoreHorizontal size={16} /></div>
+      <div className="sidebar-status"><span className="status-dot status-dot--warning" /><div><strong>运行状态待核验</strong><span>连接器与部署需检查</span></div><MoreHorizontal size={16} /></div>
       <button className="profile profile-signout" type="button" onClick={() => { void onSignOut().catch(() => { setNotice("退出登录失败，请检查网络后重试。"); }); }} aria-label="退出 Urania 工作区">
         <div className="profile-avatar">U</div><div className="profile-copy"><strong>退出工作区</strong><span>安全退出当前账号</span></div><ArrowRight size={17} />
       </button>
@@ -213,7 +213,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => Promise<void> }) {
         {page === "automation" && <Automation approved={approved} setApproved={setApproved} toast={toast} />}
         {page === "integrations" && <Integrations toast={toast} />}
         {page === "settings" && <Settings toast={toast} />}
-        <footer className="page-footer"><span>© 2026 Urania Intelligence</span><span><span className="status-dot" />演示界面 · 尚未连接实时业务数据</span><button onClick={() => toast("当前版本 0.1.0 · Foundation")}><ShieldCheck size={13} />版本 0.1.0</button></footer>
+        <footer className="page-footer"><span>© 2026 Urania Intelligence</span><span><span className="status-dot status-dot--warning" />实时模块与演示模块并存 · 请以数据来源标记为准</span><button onClick={() => toast("当前版本 0.1.0 · Foundation；生产部署状态需单独核验。")}><ShieldCheck size={13} />版本 0.1.0</button></footer>
       </div>
     </main>
     {notice && <div className="toast"><Check size={16} />{notice}</div>}
