@@ -145,6 +145,8 @@ async function retryOrFail(message, env, job, code, description) {
   try {
     const result = await setJobStatus(env,job.job_id,"retry",code,description);
     if (result?.status === "dead_letter") {
+      if (!env.URANIA_DLQ) throw new Error("dead_letter_queue_binding_missing");
+      await env.URANIA_DLQ.send({...job, dead_lettered_at:new Date().toISOString(), error_code:code, error_message:description});
       message.ack();
       return;
     }
