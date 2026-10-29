@@ -19,6 +19,6 @@
     ]
   },
   "vars": {
-    "SUPABASE_URL": "https://ipdfojcphsqnokajpzch.supabase.co",
+    "SUPABASE_URL": "https://ipdfojcphsqnokajpzch.supabase.co"
   }
 }
