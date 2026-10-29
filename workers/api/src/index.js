@@ -5,7 +5,8 @@ const ALLOWED_RPCS = {
   urania_create_lead: { method: "POST", roles: ["admin", "sales"] },
   urania_list_products: { method: "POST", roles: ["admin", "researcher", "sales"] },
   urania_list_data_sources: { method: "POST", roles: ["admin", "researcher"] },
-  urania_create_collection_job: { method: "POST", roles: ["admin", "researcher"] }
+  urania_create_collection_job: { method: "POST", roles: ["admin", "researcher"] },
+  urania_set_provider_state: { method: "POST", roles: ["admin"] }
 };
 
 function json(body, status = 200, headers = {}) {
