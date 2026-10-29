@@ -46,16 +46,27 @@ async function rpc<T>(name: string, args: Record<string, unknown>, roles: Array<
   if (!supabase) throw new Error("Supabase is not configured.");
   const { session } = await requireRole(roles);
   if (apiBase) {
-    const response = await fetch(apiBase + "/api/v1/rpc/" + name, {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: "Bearer " + session.access_token },
-      body: JSON.stringify(args),
-    });
+    let response: Response;
+    try {
+      response = await fetch(apiBase + "/api/v1/rpc/" + name, {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: "Bearer " + session.access_token },
+        body: JSON.stringify(args),
+      });
+    } catch (cause) {
+      // Availability fallback for a temporarily unreachable API edge only.
+      // Supabase still validates the same user JWT and enforces database grants/RLS.
+      if (cause instanceof TypeError) {
+        const { data, error } = await supabase.rpc(name as never, args as never);
+        if (error) throw error;
+        return data as T;
+      }
+      throw cause;
+    }
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
       const apiError = (payload as { message?: string; error?: string }).error;
       // Fail over only when the API explicitly reports missing backend configuration.
-      // The Supabase RPC still enforces the authenticated user's database grants/RLS.
       // Never fall back on authorization, validation, or upstream business errors.
       if (response.status === 503 && apiError === "backend_not_configured") {
         const { data, error } = await supabase.rpc(name as never, args as never);
