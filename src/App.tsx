@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { supabase } from "./lib/supabase";
-import { createAccount, listAccounts, listDataSources, listLeads, type AccountRecord, type LeadRecord } from "./lib/api";
+import { createAccount, createCollectionJob, createProduct, listAccounts, listDataSources, listLeads, listProducts, type AccountRecord, type LeadRecord, type ProductRecord } from "./lib/api";
 import {
   Activity, ArrowRight, ArrowUpRight, BarChart3, Bell, Boxes,
   Building2, Check, ChevronDown, CircleHelp, Clock3, Command, Compass, Database,
@@ -150,7 +150,7 @@ export default function App() {
         </div>
 
         {page === "overview" && <Overview go={go} toast={toast} />}
-        {page === "research" && <Research filter={filter} setFilter={setFilter} data={filteredOpportunities} toast={toast} />}
+        {page === "research" && <Research filter={filter} setFilter={setFilter} data={filteredOpportunities} query={query} toast={toast} />}
         {page === "crm" && <CRM data={visibleLeads} toast={toast} />}
         {page === "intelligence" && <Intelligence toast={toast} />}
         {page === "automation" && <Automation approved={approved} setApproved={setApproved} toast={toast} />}
@@ -196,12 +196,78 @@ function SourceRow({ name, detail, state, tone }: { name: string; detail: string
   return <div className="source-row"><span className={`source-dot source-dot--${tone}`} /><div><strong>{name}</strong><small>{detail}</small></div><Badge tone={tone === "green" ? "green" : "amber"}>{state}</Badge></div>;
 }
 
-function Research({ filter, setFilter, data, toast }: { filter: string; setFilter: (v: string) => void; data: typeof opportunities; toast: (s: string) => void }) {
+function Research({ filter, setFilter, data, query, toast }: { filter: string; setFilter: (v: string) => void; data: typeof opportunities; query: string; toast: (s: string) => void }) {
+  const [products, setProducts] = useState<ProductRecord[]>([]);
+  const [loading, setLoading] = useState(Boolean(supabase));
+  const [error, setError] = useState("");
+  const [role, setRole] = useState<string | null>(null);
+  const [productFormOpen, setProductFormOpen] = useState(false);
+  const [productName, setProductName] = useState("");
+  const [productCategory, setProductCategory] = useState("");
+  const [productBrand, setProductBrand] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [jobQuery, setJobQuery] = useState("");
+  const [jobBusy, setJobBusy] = useState(false);
+  const [jobMessage, setJobMessage] = useState("");
+  const isLive = Boolean(supabase);
+
+  async function reloadProducts() {
+    if (!supabase) return;
+    setLoading(true); setError("");
+    try {
+      const [rows, {data:userData}] = await Promise.all([listProducts(), supabase.auth.getUser()]);
+      setProducts(rows);
+      setRole((userData.user?.app_metadata?.urania_role as string | undefined) ?? null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "读取产品记录失败。");
+    } finally { setLoading(false); }
+  }
+  useEffect(() => { void reloadProducts(); }, []);
+
+  async function saveProduct(event: FormEvent) {
+    event.preventDefault(); setSaving(true); setError("");
+    try {
+      await createProduct({canonical_name:productName,category_path:productCategory.split("/").map(x=>x.trim()).filter(Boolean),brand:productBrand});
+      setProductName(""); setProductCategory(""); setProductBrand(""); setProductFormOpen(false);
+      toast("产品已保存到研究数据库");
+      await reloadProducts();
+    } catch (e) { setError(e instanceof Error ? e.message : "保存产品失败。"); }
+    finally { setSaving(false); }
+  }
+
+  async function startResearch() {
+    const q = (jobQuery || query).trim();
+    if (!q) { setJobMessage("请先输入一个产品或市场研究关键词。"); return; }
+    setJobBusy(true); setJobMessage(""); setError("");
+    try {
+      const country = filter === "美国" ? "US" : filter === "德国" ? "DE" : filter === "英国" ? "GB" : filter === "欧盟" ? "EU" : null;
+      const result = await createCollectionJob({
+        job_type:"research.search",
+        market_country:country,
+        input_payload:{query:q,target_market:filter==="全部市场"?"global":filter,workflow_version:"research-v1"},
+        idempotency_key:"research-"+crypto.randomUUID()
+      });
+      setJobMessage("研究任务已创建："+result.id+" · 状态："+result.status+"。任务已进入队列；第三方数据源仍需完成授权与适配器配置。");
+      toast("研究任务已提交");
+    } catch (e) { setError(e instanceof Error ? e.message : "提交研究任务失败。"); }
+    finally { setJobBusy(false); }
+  }
+
+  const demoRows = data.filter((item) => {
+    const q = query.trim().toLowerCase();
+    return (!q || (item.name+" "+item.category+" "+item.market).toLowerCase().includes(q)) &&
+      (filter==="全部市场" || item.market.includes(filter));
+  });
+  const liveRows = products.filter((p) => !query.trim() || (p.canonical_name+" "+(p.description||"")+" "+(p.brand||"")+" "+p.category_path.join(" ")).toLowerCase().includes(query.trim().toLowerCase()));
+
   return <>
-    <div className="research-summary"><div><span className="summary-label">研究工作区</span><strong>12 个候选机会</strong><span className="muted">· 样例数据</span></div><div className="summary-actions"><select value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="筛选目标市场"><option>全部市场</option><option>美国</option><option>欧盟</option><option>英国</option></select><button className="button button--secondary" onClick={() => toast("高级筛选将在真实数据接入后启用")}><Filter size={15} />高级筛选</button><button className="button button--primary" onClick={() => toast("研究任务队列尚未连接真实数据源")}><Plus size={15} />创建研究任务</button></div></div>
-    <div className="metric-grid metric-grid--research"><MetricCard label="平均机会评分" value="81 / 100" change="+4.2" icon={TrendingUp} tone="purple" note="样例评分" /><MetricCard label="需求增长信号" value="8" change="3 个市场" icon={Activity} tone="blue" note="需来源验证" /><MetricCard label="利润率达标" value="6" change="目标 ≥ 25%" icon={BarChart3} tone="green" note="估算情景" /><MetricCard label="数据缺口" value="14" change="待补证据" icon={FileSearch} tone="orange" note="样例记录" /></div>
-    <section className="panel"><SectionTitle title="产品机会列表" action="评分说明" onAction={() => toast("评分由需求、竞争、利润、供应链、趋势与风险构成；真实评分必须记录模型版本和证据。")} /><div className="table-wrap"><table><thead><tr><th>产品</th><th>目标市场</th><th>机会评分</th><th>趋势变化</th><th>预估利润率</th><th>研究状态</th><th /></tr></thead><tbody>{data.map((item) => <tr key={item.name}><td><div className="product-name"><span className="product-symbol"><Boxes size={15} /></span><span><strong>{item.name}</strong><small>{item.category}</small></span></div></td><td>{item.market}</td><td><div className="score-cell"><span>{item.score}</span><div className="score-track"><i style={{width:`${item.score}%`}} /></div></div></td><td className="positive">{item.trend}</td><td>{item.margin}</td><td><Badge tone={item.status === "值得验证" ? "green" : "amber"}>{item.status}</Badge></td><td><button className="icon-button table-more" onClick={() => toast(`${item.name}：详情页将在研究数据模型接入后开放`)} aria-label="查看详情"><ArrowRight size={15} /></button></td></tr>)}</tbody></table>{data.length===0 && <div className="empty-state"><FileSearch size={28} /><strong>没有符合条件的产品</strong><span>调整搜索词或市场筛选后重试。</span></div>}</div><div className="panel-note"><ShieldCheck size={14} />所有趋势、利润率与评分目前均为演示数据；正式版本将显示证据来源、观测时间和估算方法。</div></section>
-    <div className="research-cards"><article className="panel mini-feature"><span className="feature-icon feature-icon--purple"><Sparkles size={18} /></span><div><h3>AI 研究简报</h3><p>自动归纳需求信号、竞争情况、供应链风险与下一步验证动作。</p><button className="text-action" onClick={() => toast("AI 报告将在模型与证据层接入后启用")}>了解报告结构<ArrowRight size={13} /></button></div></article><article className="panel mini-feature"><span className="feature-icon feature-icon--green"><BarChart3 size={18} /></span><div><h3>利润情景计算器</h3><p>对比采购、物流、关税、平台费用、广告与退货后的贡献利润。</p><button className="text-action" onClick={() => toast("利润计算器进入下一阶段开发")}>查看计算规则<ArrowRight size={13} /></button></div></article></div>
+    <div className="research-summary"><div><span className="summary-label">研究工作区</span><strong>{isLive?products.length:12} 个产品记录</strong><span className="muted">· {isLive?"Supabase 数据":"演示样例"}</span></div><div className="summary-actions"><select value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="选择研究目标市场"><option>全部市场</option><option>美国</option><option>欧盟</option><option>英国</option><option>德国</option></select>{(!isLive || role==="admin" || role==="researcher")&&<button className="button button--secondary" onClick={() => setProductFormOpen(v=>!v)}><Plus size={15}/>{productFormOpen?"关闭表单":"新增产品"}</button>}<button className="button button--primary" disabled={jobBusy} onClick={() => void startResearch()}><Sparkles size={15}/>{jobBusy?"提交中…":"创建研究任务"}</button></div></div>
+    <div className="metric-grid metric-grid--research"><MetricCard label="产品记录" value={String(isLive?products.length:12)} change={isLive?"真实记录":"演示数据"} icon={Boxes} tone="purple" note="候选产品库" /><MetricCard label="有来源证据" value={isLive?"0":"8"} change="等待数据采集" icon={Activity} tone="blue" note={isLive?"证据层尚未接入":"样例数据"}/><MetricCard label="已评分产品" value={isLive?"0":"6"} change="确定性评分引擎待接入" icon={BarChart3} tone="green" note="不虚报市场结论"/><MetricCard label="数据缺口" value={isLive?"全部":"14"} change="待补充证据" icon={FileSearch} tone="orange" note="来源授权后更新"/></div>
+    {productFormOpen&&<form className="account-form" onSubmit={saveProduct}><div className="account-form-heading"><strong>新增研究产品</strong><span>当前只建立产品主档，不会自动推断销量或市场需求。</span></div><div className="account-form-grid"><label>产品名称 *<input required minLength={2} maxLength={240} value={productName} onChange={e=>setProductName(e.target.value)} placeholder="Portable power station accessories"/></label><label>品牌<input value={productBrand} onChange={e=>setProductBrand(e.target.value)} placeholder="品牌（可选）"/></label><label>分类路径<input value={productCategory} onChange={e=>setProductCategory(e.target.value)} placeholder="户外 / 能源 / 配件"/></label></div>{error&&<p className="auth-error" role="alert">{error}</p>}<div className="account-form-actions"><button type="button" className="button button--secondary" onClick={()=>setProductFormOpen(false)}>取消</button><button type="submit" className="button button--primary" disabled={saving}>{saving?"保存中…":"保存产品"}</button></div></form>}
+    {jobMessage&&<div className="inline-success"><Check size={15}/><span>{jobMessage}</span></div>}
+    {error&&!productFormOpen&&<div className="inline-error" role="alert"><ShieldCheck size={15}/><span>{error}</span><button onClick={()=>isLive?void reloadProducts():setError("")}>重试</button></div>}
+    <section className="panel"><SectionTitle title={isLive?"产品主档与研究状态":"产品机会样例"} action={isLive?"刷新":"评分说明"} onAction={() => isLive?void reloadProducts():toast("正式评分必须记录模型版本、输入证据和风险标记。")}/>{loading?<div className="empty-state"><Activity size={24}/><strong>正在读取产品记录…</strong></div>:<div className="table-wrap"><table><thead><tr><th>产品</th><th>分类 / 品牌</th><th>研究状态</th><th>市场评分</th><th>证据情况</th><th /></tr></thead><tbody>{isLive?liveRows.map(p=><tr key={p.id}><td><div className="product-name"><span className="product-symbol"><Boxes size={15}/></span><span><strong>{p.canonical_name}</strong><small>{p.description||"尚无产品描述"}</small></span></div></td><td>{p.category_path.join(" / ")||"未分类"}{p.brand?" · "+p.brand:""}</td><td><Badge>{p.status}</Badge></td><td>未评分</td><td><Badge tone="amber">等待证据</Badge></td><td><button className="icon-button table-more" onClick={()=>toast("产品详情、证据时间线与评分将在下一阶段接入。")} aria-label="产品详情"><ArrowRight size={15}/></button></td></tr>):demoRows.map((p)=><tr key={p.name}><td><div className="product-name"><span className="product-symbol"><Boxes size={15}/></span><span><strong>{p.name}</strong><small>{p.category}</small></span></div></td><td>{p.market}</td><td><Badge tone={p.status==="值得验证"?"green":"amber"}>{p.status}</Badge></td><td>{p.score} / 100</td><td><Badge tone="amber">演示证据</Badge></td><td><button className="icon-button table-more" onClick={()=>toast(p.name+"：演示数据，不代表已验证市场机会。")} aria-label="产品详情"><ArrowRight size={15}/></button></td></tr>)}</tbody></table>{(isLive?liveRows.length:demoRows.length)===0&&<div className="empty-state"><FileSearch size={28}/><strong>还没有匹配的产品记录</strong><span>新增产品主档，或创建研究任务开始收集证据。</span></div>}</div>}<div className="panel-note"><ShieldCheck size={14}/>{isLive?"真实数据库已连接；市场需求、销量和利润指标在证据源接入前不会显示为已验证。":"演示数据仅用于预览，不代表真实市场、销售额或利润。"}</div></section>
+    <div className="research-cards"><article className="panel mini-feature"><span className="feature-icon feature-icon--purple"><Sparkles size={18}/></span><div><h3>AI 研究简报</h3><p>证据聚合、来源引用、风险审查与下一步验证动作。</p><button className="text-action" onClick={()=>toast("报告生成将在真实证据与模型调用接入后开放。")}>查看报告规范<ArrowRight size={13}/></button></div></article><article className="panel mini-feature"><span className="feature-icon feature-icon--green"><BarChart3 size={18}/></span><div><h3>利润情景计算器</h3><p>采购、物流、关税、平台费用、广告与退货后的贡献利润。</p><button className="text-action" onClick={()=>toast("利润计算器需供应商报价与费用规则，下一阶段接入。")}>查看计算规则<ArrowRight size={13}/></button></div></article></div>
   </>;
 }
 
