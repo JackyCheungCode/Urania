@@ -268,6 +268,10 @@ function Research({ filter, setFilter, data, query, toast }: { filter: string; s
   const [productBrand, setProductBrand] = useState("");
   const [saving, setSaving] = useState(false);
   const [jobQuery, setJobQuery] = useState("");
+  const [jobType,setJobType]=useState<"research.search"|"crm.company_discovery"|"crm.contact_enrichment">("research.search");
+  const [jobDomain,setJobDomain]=useState("");
+  const [jobPurpose,setJobPurpose]=useState("");
+  const [jobLawfulBasis,setJobLawfulBasis]=useState("legitimate_interest");
   const [jobBusy, setJobBusy] = useState(false);
   const [jobMessage, setJobMessage] = useState("");
   const [jobs, setJobs] = useState<CollectionJobRecord[]>([]);
@@ -320,17 +324,27 @@ function Research({ filter, setFilter, data, query, toast }: { filter: string; s
 
   async function startResearch() {
     const q = (jobQuery || query).trim();
-    if (!q) { setJobMessage("请先输入一个产品或市场研究关键词。"); return; }
+    if (!q) { setJobMessage("请先输入研究关键词或公司名称。"); return; }
+    const country = filter === "美国" ? "US" : filter === "德国" ? "DE" : filter === "英国" ? "GB" : filter === "欧盟" ? "EU" : null;
+    if(jobType==="crm.contact_enrichment"&&(!jobDomain.trim()||!country||jobPurpose.trim().length<20)){
+      setJobMessage("联系人数据采集需要有效域名、明确市场、至少 20 个字符的用途说明。");return;
+    }
     setJobBusy(true); setJobMessage(""); setError("");
     try {
-      const country = filter === "美国" ? "US" : filter === "德国" ? "DE" : filter === "英国" ? "GB" : filter === "欧盟" ? "EU" : null;
+      const provider=jobType==="research.search"?"serpapi":jobType==="crm.company_discovery"?"apollo":"hunter";
       const result = await createCollectionJob({
-        job_type:"research.search",
+        job_type:jobType,
+        provider_key:provider,
         market_country:country,
-        input_payload:{query:q,target_market:filter==="全部市场"?"global":filter,workflow_version:"research-v1"},
+        input_payload:{
+          query:q,
+          target_market:filter==="全部市场"?"global":filter,
+          workflow_version:"research-v1",
+          ...(jobType==="crm.contact_enrichment"?{domain:jobDomain.trim(),lawful_basis:jobLawfulBasis,purpose:jobPurpose.trim()}:{})
+        },
         idempotency_key:"research-"+crypto.randomUUID()
       });
-      setJobMessage("研究任务已创建："+result.id+" · 状态："+result.status+"。任务已进入队列；第三方数据源仍需完成授权与适配器配置。");
+      setJobMessage("任务已创建："+result.id+" · "+result.status+"。执行前仍需管理员完成数据源授权和凭证配置。");
       toast("研究任务已提交");
     } catch (e) { setError(e instanceof Error ? e.message : "提交研究任务失败。"); }
     finally { setJobBusy(false); }
@@ -344,7 +358,7 @@ function Research({ filter, setFilter, data, query, toast }: { filter: string; s
   const liveRows = products.filter((p) => !query.trim() || (p.canonical_name+" "+(p.description||"")+" "+(p.brand||"")+" "+p.category_path.join(" ")).toLowerCase().includes(query.trim().toLowerCase()));
 
   return <>
-    <div className="research-summary"><div><span className="summary-label">研究工作区</span><strong>{isLive?products.length:12} 个产品记录</strong><span className="muted">· {isLive?"Supabase 数据":"演示样例"}</span></div><div className="summary-actions"><input className="research-query-input" value={jobQuery} onChange={e=>setJobQuery(e.target.value)} placeholder="研究关键词…" aria-label="研究任务关键词"/><select value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="选择研究目标市场"><option>全部市场</option><option>美国</option><option>欧盟</option><option>英国</option><option>德国</option></select>{(!isLive || role==="admin" || role==="researcher")&&<button className="button button--secondary" onClick={() => setProductFormOpen(v=>!v)}><Plus size={15}/>{productFormOpen?"关闭表单":"新增产品"}</button>}<button className="button button--primary" disabled={jobBusy} onClick={() => void startResearch()}><Sparkles size={15}/>{jobBusy?"提交中…":"创建研究任务"}</button></div></div>
+    <div className="research-summary"><div><span className="summary-label">研究工作区</span><strong>{isLive?products.length:12} 个产品记录</strong><span className="muted">· {isLive?"Supabase 数据":"演示样例"}</span></div><div className="summary-actions"><select value={jobType} onChange={e=>setJobType(e.target.value as typeof jobType)} aria-label="选择研究任务类型"><option value="research.search">网页搜索研究 · SerpApi</option><option value="crm.company_discovery">企业发现 · Apollo</option><option value="crm.contact_enrichment">联系人数据 · Hunter</option></select><input className="research-query-input" value={jobQuery} onChange={e=>setJobQuery(e.target.value)} placeholder={jobType==="crm.company_discovery"?"企业名称或行业关键词…":"研究关键词…"} aria-label="研究任务关键词"/><select value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="选择研究目标市场"><option>全部市场</option><option>美国</option><option>欧盟</option><option>英国</option><option>德国</option></select>{(!isLive || role==="admin" || role==="researcher")&&<button className="button button--secondary" onClick={() => setProductFormOpen(v=>!v)}><Plus size={15}/>{productFormOpen?"关闭表单":"新增产品"}</button>}<button className="button button--primary" disabled={jobBusy} onClick={() => void startResearch()}><Sparkles size={15}/>{jobBusy?"提交中…":"创建研究任务"}</button></div>{jobType==="crm.contact_enrichment"&&<div className="account-form-grid"><label>公司域名 *<input value={jobDomain} onChange={e=>setJobDomain(e.target.value)} placeholder="example.com"/></label><label>处理依据 *<select value={jobLawfulBasis} onChange={e=>setJobLawfulBasis(e.target.value)}><option value="legitimate_interest">合法利益（需完成利益衡量评估）</option><option value="consent">同意</option><option value="contract">合同必要</option><option value="legal_obligation">法律义务</option><option value="public_task">公共任务</option></select></label><label>具体用途 *<input value={jobPurpose} onChange={e=>setJobPurpose(e.target.value)} placeholder="说明为何需要该域名下的商务联系人数据"/></label></div>}</div>
     <div className="metric-grid metric-grid--research"><MetricCard label="产品记录" value={String(isLive?products.length:12)} change={isLive?"真实记录":"演示数据"} icon={Boxes} tone="purple" note="候选产品库" /><MetricCard label="有来源证据" value={isLive?"0":"8"} change="等待数据采集" icon={Activity} tone="blue" note={isLive?"证据层尚未接入":"样例数据"}/><MetricCard label="已评分产品" value={isLive?"0":"6"} change="确定性评分引擎待接入" icon={BarChart3} tone="green" note="不虚报市场结论"/><MetricCard label="数据缺口" value={isLive?"全部":"14"} change="待补充证据" icon={FileSearch} tone="orange" note="来源授权后更新"/></div>
     {productFormOpen&&<form className="account-form" onSubmit={saveProduct}><div className="account-form-heading"><strong>新增研究产品</strong><span>当前只建立产品主档，不会自动推断销量或市场需求。</span></div><div className="account-form-grid"><label>产品名称 *<input required minLength={2} maxLength={240} value={productName} onChange={e=>setProductName(e.target.value)} placeholder="Portable power station accessories"/></label><label>品牌<input value={productBrand} onChange={e=>setProductBrand(e.target.value)} placeholder="品牌（可选）"/></label><label>分类路径<input value={productCategory} onChange={e=>setProductCategory(e.target.value)} placeholder="户外 / 能源 / 配件"/></label></div>{error&&<p className="auth-error" role="alert">{error}</p>}<div className="account-form-actions"><button type="button" className="button button--secondary" onClick={()=>setProductFormOpen(false)}>取消</button><button type="submit" className="button button--primary" disabled={saving}>{saving?"保存中…":"保存产品"}</button></div></form>}
     {jobMessage&&<div className="inline-success"><Check size={15}/><span>{jobMessage}</span></div>}
