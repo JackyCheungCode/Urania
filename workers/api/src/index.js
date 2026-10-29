@@ -21,6 +21,7 @@ const ALLOWED_RPCS = {
   urania_set_quote_status: { method: "POST", roles: ["admin", "sales"] },
   urania_list_approvals: { method: "POST", roles: ["admin", "sales"] },
   urania_review_approval: { method: "POST", roles: ["admin", "sales"] },
+  urania_create_email_approval: { method: "POST", roles: ["admin", "sales"] },
   urania_list_orders: { method: "POST", roles: ["admin", "sales"] },
   urania_create_order: { method: "POST", roles: ["admin", "sales"] },
   urania_create_profit_scenario: { method: "POST", roles: ["admin", "researcher", "sales"] },
