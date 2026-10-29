@@ -11,7 +11,14 @@ const ALLOWED_RPCS = {
   urania_list_contacts: { method: "POST", roles: ["admin", "sales"] },
   urania_create_contact: { method: "POST", roles: ["admin", "sales"] },
   urania_list_opportunities: { method: "POST", roles: ["admin", "sales"] },
-  urania_create_opportunity: { method: "POST", roles: ["admin", "sales"] }
+  urania_create_opportunity: { method: "POST", roles: ["admin", "sales"] },
+  urania_list_activities: { method: "POST", roles: ["admin", "sales"] },
+  urania_create_activity: { method: "POST", roles: ["admin", "sales"] },
+  urania_list_quotes: { method: "POST", roles: ["admin", "sales"] },
+  urania_create_quote: { method: "POST", roles: ["admin", "sales"] },
+  urania_set_quote_status: { method: "POST", roles: ["admin", "sales"] },
+  urania_list_orders: { method: "POST", roles: ["admin", "sales"] },
+  urania_create_order: { method: "POST", roles: ["admin", "sales"] }
 };
 
 function json(body, status = 200, headers = {}) {
