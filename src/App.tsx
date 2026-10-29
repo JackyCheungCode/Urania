@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { Button as CarbonButton, Checkbox, InlineNotification, Modal, PasswordInput, Select, SelectItem, TextInput } from "@carbon/react";
+import { Button as CarbonButton, InlineNotification, PasswordInput, TextInput } from "@carbon/react";
 import { supabase } from "./lib/supabase";
 import CRMExtras from "./components/CRMExtras";
 import ProfitCalculator from "./components/ProfitCalculator";
