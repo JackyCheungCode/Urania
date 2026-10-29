@@ -7,7 +7,7 @@ import { createAccount, createCollectionJob, createContact, createLead, createOp
 import {
   Activity, ArrowRight, ArrowUpRight, BarChart3, Bell, Boxes, ClipboardList,
   Building2, Check, ChevronDown, CircleHelp, Clock3, Command, Compass, Database,
-  Download, FileSearch, Globe2, LayoutDashboard, ListTodo,
+  Download, ExternalLink, FileSearch, Globe2, LayoutDashboard, ListTodo,
   Mail, Menu, MoreHorizontal, Plus, Search, Settings2, ShieldCheck, Sparkles,
   Target, TrendingUp, Users, Workflow, X, Zap,
 } from "lucide-react";
