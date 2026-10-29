@@ -19,7 +19,9 @@ function allowedOrigin(request, env) {
   const origin = request.headers.get("Origin");
   if (!origin) return { origin: null, allowed: true };
   const allowed = (env.ALLOWED_ORIGINS || "").split(",").map(x => x.trim()).filter(Boolean);
-  return { origin, allowed: allowed.includes(origin) };
+  let projectPreview = false;
+  try { projectPreview = new URL(origin).protocol === "https:" && new URL(origin).hostname.endsWith(".urania-preview.pages.dev"); } catch {}
+  return { origin, allowed: allowed.includes(origin) || projectPreview };
 }
 
 function corsHeaders(origin) {
