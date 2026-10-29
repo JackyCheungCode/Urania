@@ -11,16 +11,14 @@ function json(body, status=200) {
 
 async function rpc(env, name, args) {
   if (!INTERNAL_RPC.has(name)) throw new Error("rpc_not_allowed");
-  if (!env.SUPABASE_URL || !env.SUPABASE_PUBLISHABLE_KEY || !env.URANIA_INTERNAL_TOKEN) throw new Error("worker_backend_not_configured");
-  const response = await fetch(env.SUPABASE_URL.replace(/\/$/, "") + "/rest/v1/rpc/" + name, {
+  if (!env.SUPABASE_URL || !env.URANIA_INTERNAL_TOKEN) throw new Error("worker_backend_not_configured");
+  const response = await fetch(env.SUPABASE_URL.replace(/\/$/, "") + "/functions/v1/urania-internal-worker", {
     method:"POST",
     headers:{
-      apikey:env.SUPABASE_PUBLISHABLE_KEY,
       "content-type":"application/json",
-      "accept-profile":"public",
-      "content-profile":"public"
+      "x-urania-internal-token":env.URANIA_INTERNAL_TOKEN
     },
-    body:JSON.stringify({p_internal_token:env.URANIA_INTERNAL_TOKEN,...args})
+    body:JSON.stringify({action:name,...args})
   });
   const text = await response.text();
   let data;
