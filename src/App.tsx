@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { supabase } from "./lib/supabase";
-import { createAccount, createCollectionJob, createProduct, listAccounts, listDataSources, listLeads, listProducts, type AccountRecord, type LeadRecord, type ProductRecord } from "./lib/api";
+import { createAccount, createCollectionJob, createProduct, listAccounts, listDataSources, listLeads, listProducts, updateProviderState, type AccountRecord, type LeadRecord, type ProductRecord } from "./lib/api";
 import {
   Activity, ArrowRight, ArrowUpRight, BarChart3, Bell, Boxes,
   Building2, Check, ChevronDown, CircleHelp, Clock3, Command, Compass, Database,
@@ -370,13 +370,47 @@ function Integrations({ toast }: { toast: (s: string) => void }) {
   const [liveConnectors, setLiveConnectors] = useState<Array<{provider_key:string;display_name:string;category:string;status:string;authorization_status:string;regions:string[];capabilities:string[]}>>([]);
   const [loading, setLoading] = useState(Boolean(supabase));
   const [error, setError] = useState("");
+  const [role, setRole] = useState<string | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
+  const [attestation, setAttestation] = useState(false);
+  const [licenseScope, setLicenseScope] = useState("SerpApi Google Search API; internal product research only; no redistribution");
+  const [retentionDays, setRetentionDays] = useState("30");
+  const [savingProvider, setSavingProvider] = useState(false);
   const isLive = Boolean(supabase);
   useEffect(() => {
     if (!supabase) return;
-    listDataSources().then((rows) => setLiveConnectors(rows as typeof liveConnectors))
+    Promise.all([listDataSources(), supabase.auth.getUser()])
+      .then(([rows, {data:userData}]) => {
+        setLiveConnectors(rows as typeof liveConnectors);
+        setRole((userData.user?.app_metadata?.urania_role as string | undefined) ?? null);
+      })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : "无法读取连接器目录。"))
       .finally(() => setLoading(false));
   }, []);
+  async function saveProviderAuthorization() {
+    if (!selectedProvider || !attestation) {
+      setError("请确认已配置服务端 API 密钥，并完成供应商许可审核。");
+      return;
+    }
+    const days = Number(retentionDays);
+    if (!Number.isInteger(days) || days < 1 || days > 3650 || licenseScope.trim().length < 8) {
+      setError("请填写有效的数据使用范围和 1–3650 天的保留期限。");
+      return;
+    }
+    setSavingProvider(true); setError("");
+    try {
+      const updated = await updateProviderState({
+        provider_key:selectedProvider,status:"active",authorization_status:"approved",
+        license_scope:licenseScope.trim(),retention_days:days
+      });
+      setLiveConnectors(rows=>rows.map(x=>x.provider_key===selectedProvider?{...x,...updated}:x));
+      setSelectedProvider(null); setAttestation(false);
+      toast("授权状态已记录；真实调用仍要求服务端密钥有效。");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "更新授权状态失败。");
+    } finally { setSavingProvider(false); }
+  }
+
   const categories = ["全部类别","search","trends","marketplace","company_data","contact_data","supplier_data","ai","database","other"];
   const filteredLive = liveConnectors.filter((x) => category==="全部类别" || x.category===category);
   const filteredDemo = connectors.filter((x) => category==="全部类别" || x.category===category);
@@ -387,7 +421,15 @@ function Integrations({ toast }: { toast: (s: string) => void }) {
     <div className="integration-summary"><MetricCard label="连接器目录" value={String(isLive?liveConnectors.length:connectors.length)} change="可扩展" icon={Database} tone="purple" note={isLive?"数据库记录":"演示清单"} /><MetricCard label="已启用" value={String(isLive?liveConnectors.filter(x=>x.status==="active").length:1)} change="真实连接需验证" icon={Check} tone="green" note="仅统计 active" /><MetricCard label="待配置 / 授权" value={String(isLive?liveConnectors.filter(x=>x.status==="planned"||x.authorization_status!=="approved").length:4)} change="需要凭证与许可" icon={Settings2} tone="orange" note="第三方数据源" /><MetricCard label="本月调用成本" value="—" change="账单未接入" icon={BarChart3} tone="blue" note="不会虚报费用" /></div>
     <section className="panel"><div className="integration-toolbar"><SectionTitle title={isLive?"数据源注册表":"数据源连接器"} /><select value={category} onChange={(e)=>setCategory(e.target.value)} aria-label="筛选连接器类别">{categories.map(c=><option key={c} value={c}>{c==="全部类别"?"全部类别":c}</option>)}</select></div>
       {error&&<div className="inline-error"><ShieldCheck size={15}/><span>{error}</span></div>}
-      {loading?<div className="empty-state"><Activity size={24}/><strong>正在读取连接器目录…</strong></div>:<div className="connector-list">{isLive?filteredLive.map((x) => <div className="connector-row" key={x.provider_key}><span className="connector-logo connector-logo--blue">{x.display_name.slice(0,2)}</span><div className="connector-copy"><div><strong>{x.display_name}</strong><Badge>{x.category}</Badge></div><p>{(x.capabilities||[]).join(" · ") || "能力范围待定义"}{x.regions?.length ? " · " + x.regions.join(", ") : ""}</p><small className="table-secondary">授权：{authLabel(x.authorization_status)}</small></div><Badge tone={x.status==="active"||x.status==="configured"?"green":x.status==="error"?"amber":"neutral"}>{stateLabel(x.status)}</Badge><button className="button button--secondary button--small" onClick={() => toast(x.display_name+"：请在服务端密钥管理中配置凭证，并先核验 API 许可。")}>管理<ArrowRight size={13}/></button></div>):filteredDemo.map((x) => <div className={"connector-row"} key={x.name}><span className={"connector-logo connector-logo--"+x.tone}>{x.initials}</span><div className="connector-copy"><div><strong>{x.name}</strong><Badge>{x.category}</Badge></div><p>{x.detail}</p></div><Badge tone={x.state==="已连接"?"green":x.state==="待授权"?"amber":"neutral"}>{x.state}</Badge><button className="button button--secondary button--small" onClick={() => toast(x.name+" 需先确认账户授权、API 权限、价格与数据条款")}>查看状态<ArrowRight size={13}/></button></div>)}</div>}
+      {loading?<div className="empty-state"><Activity size={24}/><strong>正在读取连接器目录…</strong></div>:<div className="connector-list">{isLive?filteredLive.map((x) => <div className="connector-row" key={x.provider_key}><span className="connector-logo connector-logo--blue">{x.display_name.slice(0,2)}</span><div className="connector-copy"><div><strong>{x.display_name}</strong><Badge>{x.category}</Badge></div><p>{(x.capabilities||[]).join(" · ") || "能力范围待定义"}{x.regions?.length ? " · " + x.regions.join(", ") : ""}</p><small className="table-secondary">授权：{authLabel(x.authorization_status)}</small></div><Badge tone={x.status==="active"||x.status==="configured"?"green":x.status==="error"?"amber":"neutral"}>{stateLabel(x.status)}</Badge>{x.provider_key==="serpapi"&&role==="admin"?<button className="button button--secondary button--small" onClick={()=>{setSelectedProvider(x.provider_key);setAttestation(false);setError("");}}>配置授权<ArrowRight size={13}/></button>:<button className="button button--secondary button--small" onClick={() => toast(x.display_name+"：请先完成账户授权、API 权限、价格与数据条款核验。")}>查看状态<ArrowRight size={13}/></button>}</div>):filteredDemo.map((x) => <div className={"connector-row"} key={x.name}><span className={"connector-logo connector-logo--"+x.tone}>{x.initials}</span><div className="connector-copy"><div><strong>{x.name}</strong><Badge>{x.category}</Badge></div><p>{x.detail}</p></div><Badge tone={x.state==="已连接"?"green":x.state==="待授权"?"amber":"neutral"}>{x.state}</Badge><button className="button button--secondary button--small" onClick={() => toast(x.name+" 需先确认账户授权、API 权限、价格与数据条款")}>查看状态<ArrowRight size={13}/></button></div>)}</div>}
+      {selectedProvider&&<form className="account-form provider-auth-form" onSubmit={(e)=>{e.preventDefault();void saveProviderAuthorization();}}>
+        <div className="account-form-heading"><strong>SerpApi 授权登记</strong><span>先在 Cloudflare Worker <code>urania-queue-consumer-dev</code> 中添加 Secret <code>SERPAPI_API_KEY</code>，再完成下方确认。密钥不会在此表单输入或保存。</span></div>
+        <label className="provider-scope-label">许可与用途范围 *<input required minLength={8} maxLength={1000} value={licenseScope} onChange={e=>setLicenseScope(e.target.value)} /></label>
+        <label className="provider-scope-label">数据保留期限（天） *<input type="number" min={1} max={3650} required value={retentionDays} onChange={e=>setRetentionDays(e.target.value)} /></label>
+        <label className="provider-attestation"><input type="checkbox" checked={attestation} onChange={e=>setAttestation(e.target.checked)}/><span>我已在 Cloudflare 配置 SerpApi 密钥，并核验该 API 的商业使用许可、配额、费用和数据保留条款。</span></label>
+        {error&&<p className="auth-error" role="alert">{error}</p>}
+        <div className="account-form-actions"><button type="button" className="button button--secondary" onClick={()=>setSelectedProvider(null)}>取消</button><button type="submit" className="button button--primary" disabled={savingProvider||!attestation}>{savingProvider?"保存中…":"确认并启用 SerpApi"}</button></div>
+      </form>}
       <div className="panel-note"><ShieldCheck size={14}/>连接器目录不代表 API 已接通。第三方来源必须先核验权限、数据用途、价格、保留周期和商业使用范围；真实调用费用会记录在 usage_events。</div></section>
     <section className="panel"><SectionTitle title="连接器接入原则" /><div className="evidence-grid"><div><span className="evidence-mark evidence-mark--green">01</span><strong>许可先行</strong><p>确认 API 权限、数据用途、保留周期和商业使用范围。</p></div><div><span className="evidence-mark evidence-mark--blue">02</span><strong>统一标准</strong><p>映射为标准记录，并保留供应商原始响应和来源时间。</p></div><div><span className="evidence-mark evidence-mark--amber">03</span><strong>成本可控</strong><p>设置缓存、速率限制、预算上限和失败重试策略。</p></div></div></section>
   </>;
