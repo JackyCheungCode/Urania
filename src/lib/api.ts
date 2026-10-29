@@ -205,6 +205,17 @@ export async function listCollectionJobs(limit = 20): Promise<CollectionJobRecor
   return result.data ?? [];
 }
 
+export async function saveProviderCredential(providerKey: string, apiKey: string): Promise<{provider_key:string;credential_configured:boolean;status:string}> {
+  if (!/^[a-z][a-z0-9_]{1,79}$/.test(providerKey)) throw new Error("无效的供应商标识。");
+  if (apiKey.trim().length < 8 || apiKey.length > 4096) throw new Error("API 密钥长度无效。");
+  const result = await rpc<{data:{provider_key:string;credential_configured:boolean;status:string}}>(
+    "urania_set_provider_credential",
+    {p_provider_key:providerKey,p_api_key:apiKey},
+    ["admin"],
+  );
+  return result.data;
+}
+
 export async function updateProviderState(input: {
   provider_key: string;
   status: string;
