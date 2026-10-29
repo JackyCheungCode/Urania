@@ -4,7 +4,7 @@ import { createAccount, createCollectionJob, createProduct, listAccounts, listDa
 import {
   Activity, ArrowRight, ArrowUpRight, BarChart3, Bell, Boxes,
   Building2, Check, ChevronDown, CircleHelp, Clock3, Command, Compass, Database,
-  Download, FileSearch, Filter, Globe2, LayoutDashboard, ListTodo,
+  Download, FileSearch, Globe2, LayoutDashboard, ListTodo,
   Mail, Menu, MoreHorizontal, Plus, Search, Settings2, ShieldCheck, Sparkles,
   Target, TrendingUp, Users, Workflow, X, Zap,
 } from "lucide-react";
@@ -261,7 +261,7 @@ function Research({ filter, setFilter, data, query, toast }: { filter: string; s
   const liveRows = products.filter((p) => !query.trim() || (p.canonical_name+" "+(p.description||"")+" "+(p.brand||"")+" "+p.category_path.join(" ")).toLowerCase().includes(query.trim().toLowerCase()));
 
   return <>
-    <div className="research-summary"><div><span className="summary-label">研究工作区</span><strong>{isLive?products.length:12} 个产品记录</strong><span className="muted">· {isLive?"Supabase 数据":"演示样例"}</span></div><div className="summary-actions"><select value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="选择研究目标市场"><option>全部市场</option><option>美国</option><option>欧盟</option><option>英国</option><option>德国</option></select>{(!isLive || role==="admin" || role==="researcher")&&<button className="button button--secondary" onClick={() => setProductFormOpen(v=>!v)}><Plus size={15}/>{productFormOpen?"关闭表单":"新增产品"}</button>}<button className="button button--primary" disabled={jobBusy} onClick={() => void startResearch()}><Sparkles size={15}/>{jobBusy?"提交中…":"创建研究任务"}</button></div></div>
+    <div className="research-summary"><div><span className="summary-label">研究工作区</span><strong>{isLive?products.length:12} 个产品记录</strong><span className="muted">· {isLive?"Supabase 数据":"演示样例"}</span></div><div className="summary-actions"><input className="research-query-input" value={jobQuery} onChange={e=>setJobQuery(e.target.value)} placeholder="研究关键词…" aria-label="研究任务关键词"/><select value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="选择研究目标市场"><option>全部市场</option><option>美国</option><option>欧盟</option><option>英国</option><option>德国</option></select>{(!isLive || role==="admin" || role==="researcher")&&<button className="button button--secondary" onClick={() => setProductFormOpen(v=>!v)}><Plus size={15}/>{productFormOpen?"关闭表单":"新增产品"}</button>}<button className="button button--primary" disabled={jobBusy} onClick={() => void startResearch()}><Sparkles size={15}/>{jobBusy?"提交中…":"创建研究任务"}</button></div></div>
     <div className="metric-grid metric-grid--research"><MetricCard label="产品记录" value={String(isLive?products.length:12)} change={isLive?"真实记录":"演示数据"} icon={Boxes} tone="purple" note="候选产品库" /><MetricCard label="有来源证据" value={isLive?"0":"8"} change="等待数据采集" icon={Activity} tone="blue" note={isLive?"证据层尚未接入":"样例数据"}/><MetricCard label="已评分产品" value={isLive?"0":"6"} change="确定性评分引擎待接入" icon={BarChart3} tone="green" note="不虚报市场结论"/><MetricCard label="数据缺口" value={isLive?"全部":"14"} change="待补充证据" icon={FileSearch} tone="orange" note="来源授权后更新"/></div>
     {productFormOpen&&<form className="account-form" onSubmit={saveProduct}><div className="account-form-heading"><strong>新增研究产品</strong><span>当前只建立产品主档，不会自动推断销量或市场需求。</span></div><div className="account-form-grid"><label>产品名称 *<input required minLength={2} maxLength={240} value={productName} onChange={e=>setProductName(e.target.value)} placeholder="Portable power station accessories"/></label><label>品牌<input value={productBrand} onChange={e=>setProductBrand(e.target.value)} placeholder="品牌（可选）"/></label><label>分类路径<input value={productCategory} onChange={e=>setProductCategory(e.target.value)} placeholder="户外 / 能源 / 配件"/></label></div>{error&&<p className="auth-error" role="alert">{error}</p>}<div className="account-form-actions"><button type="button" className="button button--secondary" onClick={()=>setProductFormOpen(false)}>取消</button><button type="submit" className="button button--primary" disabled={saving}>{saving?"保存中…":"保存产品"}</button></div></form>}
     {jobMessage&&<div className="inline-success"><Check size={15}/><span>{jobMessage}</span></div>}
@@ -272,7 +272,6 @@ function Research({ filter, setFilter, data, query, toast }: { filter: string; s
 }
 
 function CRM({ data, toast }: { data: typeof leads; toast: (s: string) => void }) {
-  const [stage, setStage] = useState("全部阶段");
   const [tab, setTab] = useState<"accounts" | "leads">("accounts");
   const [accounts, setAccounts] = useState<AccountRecord[]>([]);
   const [liveLeads, setLiveLeads] = useState<LeadRecord[]>([]);
@@ -319,9 +318,8 @@ function CRM({ data, toast }: { data: typeof leads; toast: (s: string) => void }
     finally { setSaving(false); }
   }
 
-  const demoRows = data.filter((x) => stage === "全部阶段" || x.stage === stage);
-  const liveRows = liveLeads.filter((x) => stage === "全部阶段" || x.status === stage);
-  const stages = ["全部阶段","new","researching","qualified","contacted","converted","disqualified"];
+  const demoRows = data;
+  const liveRows = liveLeads;
 
   return <>
     <div className="crm-metrics"><MetricCard label="企业账户" value={isLive ? String(accounts.length) : "248"} change={isLive ? "实时数据库" : "+18"} icon={Building2} tone="blue" note={isLive ? "真实记录" : "演示数据"} /><MetricCard label="销售线索" value={isLive ? String(liveLeads.length) : "32"} change={isLive ? "数据库记录" : "8 个逾期"} icon={ListTodo} tone="orange" note={isLive ? "真实记录" : "需要处理"} /><MetricCard label="已验证账户" value={isLive ? String(accounts.filter(x=>x.verification_status==="human_verified").length) : "84 / 100"} change={isLive ? "人工验证" : "+5.1"} icon={Target} tone="purple" note={isLive ? "来源可追溯" : "样例评分"} /></div>
