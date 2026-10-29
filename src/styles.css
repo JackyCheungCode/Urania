@@ -70,3 +70,5 @@
 .profile-signout:hover{background:var(--surface-hover,#f4f6fb)}
 .profile-signout:focus-visible{outline:2px solid var(--blue,#5265df);outline-offset:2px}
 .profile-signout>svg{margin-left:auto;flex-shrink:0}
+
+.status-dot--warning{background:#d97706;box-shadow:0 0 0 3px rgba(217,119,6,.12)}
