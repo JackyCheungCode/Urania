@@ -572,7 +572,7 @@ function Automation({ toast }: { toast: (s: string) => void }) {
         const statusLabel=({pending:"待审核",approved:"已批准",rejected:"已拒绝",cancelled:"已取消"} as Record<string,string>)[a.status]||a.status;
         return <div className="workflow-row" key={a.id}>
           <span className="workflow-icon workflow-icon--mail"><Mail size={17}/></span>
-          <div className="workflow-copy"><strong>{subject}</strong><small>{a.approval_type==="outbound_email"?"首次外联邮件":a.approval_type} · {recipient} · {new Date(a.requested_at).toLocaleString()}</small>{a.review_note&&<small>审核意见：{a.review_note}</small>}</div>
+          <div className="workflow-copy"><strong>{subject}</strong><small>{a.approval_type==="outbound_email"?"首次外联邮件":a.approval_type} · {recipient} · {new Date(a.requested_at).toLocaleString()}</small>{typeof payload.body==="string"&&<div className="approval-email-body" style={{whiteSpace:"pre-wrap",maxHeight:160,overflowY:"auto"}}>{payload.body}</div>}{a.review_note&&<small>审核意见：{a.review_note}</small>}</div>
           <Badge tone={a.status==="approved"?"green":a.status==="pending"?"amber":"neutral"}>{statusLabel}</Badge>
           <div className="workflow-actions">{a.status==="pending"?<><button className="button button--secondary button--small" disabled={actingId===a.id} onClick={()=>void decide(a.id,"rejected")}>拒绝</button><button className="button button--primary button--small" disabled={actingId===a.id} onClick={()=>void decide(a.id,"approved")}>{actingId===a.id?"处理中…":"批准"}</button></>:<span className="table-secondary">{a.reviewed_at?new Date(a.reviewed_at).toLocaleString():"—"}</span>}</div>
         </div>;
