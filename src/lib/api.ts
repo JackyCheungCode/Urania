@@ -323,3 +323,18 @@ export async function createProfitScenario(input:{
   );
   return result.data;
 }
+
+export type ProductScoreRecord = {
+  id:string; product_id:string; score:number; score_version:string;
+  component_scores:Record<string,number>; risk_flags:string[]; confidence:number|null;
+  evidence_count:number; notes:string|null; coverage_weight:number; hard_stop:boolean; scored_at:string;
+};
+export async function createProductScore(input:{
+  product_id:string;component_scores:Record<string,number>;risk_flags:string[];confidence:number;notes?:string;score_version?:string;
+}):Promise<ProductScoreRecord>{
+  const result=await rpc<{data:ProductScoreRecord}>("urania_create_product_score",{
+    p_product_id:input.product_id,p_component_scores:input.component_scores,p_risk_flags:input.risk_flags,
+    p_confidence:input.confidence,p_score_version:input.score_version||"v1.0",p_notes:input.notes||null
+  },["admin","researcher"]);
+  return result.data;
+}
