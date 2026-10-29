@@ -7,7 +7,17 @@
   "vars": {
     "SUPABASE_URL": "https://ipdfojcphsqnokajpzch.supabase.co",
     "SUPABASE_PUBLISHABLE_KEY": "CONFIGURE_IN_CLOUDFLARE_DASHBOARD",
-    "ALLOWED_ORIGINS": "http://localhost:5173"
+    "ALLOWED_ORIGINS": "http://localhost:5173,https://urania-preview.pages.dev"
   },
-  "observability": { "enabled": true }
+  "observability": {
+    "enabled": true
+  },
+  "queues": {
+    "producers": [
+      {
+        "binding": "URANIA_JOBS",
+        "queue": "urania-jobs-dev"
+      }
+    ]
+  }
 }
