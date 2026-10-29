@@ -46,7 +46,7 @@ const connectors = [
 ];
 
 const pageMeta: Record<Page, { title: string; eyebrow: string; description: string }> = {
-  overview: { title: "工作台", eyebrow: "MONDAY, OCT 29", description: "全球产品机会与客户开发进度，一目了然。" },
+  overview: { title: "工作台", eyebrow: "THURSDAY, OCT 29", description: "全球产品机会与客户开发进度，一目了然。" },
   research: { title: "产品研究", eyebrow: "PRODUCT INTELLIGENCE", description: "从全球需求信号到可验证的产品机会。" },
   crm: { title: "CRM 客户", eyebrow: "CUSTOMER RELATIONSHIPS", description: "管理企业、联系人、线索与销售跟进。" },
   intelligence: { title: "数据情报", eyebrow: "GLOBAL DATA INTELLIGENCE", description: "把多来源数据转化为可追溯的业务证据。" },
