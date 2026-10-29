@@ -638,14 +638,14 @@ function Integrations({ toast }: { toast: (s: string) => void }) {
         return;
       }
       await saveProviderCredential(selectedProvider, providerApiKey.trim());
-      const nextStatus = selectedProvider === "serpapi" ? "active" : "configured";
+      const nextStatus = ["serpapi","apollo","hunter"].includes(selectedProvider) ? "active" : "configured";
       const updated = await updateProviderState({
         provider_key:selectedProvider,status:nextStatus,authorization_status:"approved",
         license_scope:licenseScope.trim(),retention_days:days
       });
       setLiveConnectors(rows=>rows.map(x=>x.provider_key===selectedProvider?{...x,...updated}:x));
       setSelectedProvider(null); setAttestation(false); setProviderApiKey("");
-      toast(selectedProvider === "serpapi" ? "SerpApi 密钥已安全保存并启用。" : "密钥已安全保存；该供应商的实际调用适配器仍需实现。");
+      toast(["serpapi","apollo","hunter"].includes(selectedProvider) ? "密钥已安全保存，适配器已登记启用。" : "密钥已安全保存；该供应商仍需完成服务端适配器。");
     } catch (e) {
       setError(e instanceof Error ? e.message : "更新授权状态失败。");
     } finally { setSavingProvider(false); }
@@ -655,6 +655,8 @@ function Integrations({ toast }: { toast: (s: string) => void }) {
   const providerMeta:Record<string,{url:string;domain:string;label:string}>={
     serpapi:{url:"https://serpapi.com/manage-api-key",domain:"serpapi.com",label:"申请 API Key"},
     dataforseo:{url:"https://app.dataforseo.com/api-access",domain:"dataforseo.com",label:"申请 API 凭证"},
+    apollo:{url:"https://app.apollo.io/#/settings/integrations/api",domain:"apollo.io",label:"申请 API Key"},
+    hunter:{url:"https://hunter.io/api-keys",domain:"hunter.io",label:"申请 API Key"},
     keepa:{url:"https://keepa.com/#!api",domain:"keepa.com",label:"申请 API Token"},
     ebay_browse:{url:"https://developer.ebay.com/my/keys",domain:"ebay.com",label:"申请开发者密钥"},
     google_trends:{url:"https://developers.google.com/search/apis/trends",domain:"google.com",label:"查看官方 API 资格"},
