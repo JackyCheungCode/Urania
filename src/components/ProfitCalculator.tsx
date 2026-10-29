@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { Calculator, CheckCircle2, Coins, Save, ShieldCheck } from "lucide-react";
+import { Calculator, CheckCircle2, Save, ShieldCheck } from "lucide-react";
 import { createProfitScenario, type ProductRecord } from "../lib/api";
 import { isSupabaseConfigured } from "../lib/supabase";
 
