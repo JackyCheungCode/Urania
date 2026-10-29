@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "urania-api-dev",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-29",
+  "workers_dev": true,
+  "vars": {
+    "SUPABASE_URL": "https://ipdfojcphsqnokajpzch.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "CONFIGURE_IN_CLOUDFLARE_DASHBOARD",
+    "ALLOWED_ORIGINS": "http://localhost:5173"
+  },
+  "observability": { "enabled": true }
+}
