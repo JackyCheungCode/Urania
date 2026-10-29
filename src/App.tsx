@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { Button as CarbonButton, Checkbox, InlineNotification, Modal, PasswordInput, Select, SelectItem, TextInput } from "@carbon/react";
 import { supabase } from "./lib/supabase";
 import CRMExtras from "./components/CRMExtras";
 import ProfitCalculator from "./components/ProfitCalculator";
@@ -93,10 +94,10 @@ function LoginScreen({ onLogin }: { onLogin: (email: string, password: string) =
     <div className="auth-brand"><div className="brand-mark"><Sparkles size={20} strokeWidth={2.2} /></div><div><div className="brand-name">urania<span>.</span></div><div className="brand-sub">GLOBAL INTELLIGENCE</div></div></div>
     <div className="auth-heading"><span>INTERNAL WORKSPACE</span><h1>欢迎回来</h1><p>登录 Urania，继续你的全球产品研究与客户开发。</p></div>
     <form className="auth-form" onSubmit={submit}>
-      <label htmlFor="urania-email">邮箱地址</label><input id="urania-email" type="email" autoComplete="username" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@company.com" />
-      <label htmlFor="urania-password">密码</label><input id="urania-password" type="password" autoComplete="current-password" required value={password} onChange={e=>setPassword(e.target.value)} placeholder="输入你的密码" />
-      {error && <div className="auth-error" role="alert">{error}</div>}
-      <button className="button button--primary auth-submit" type="submit" disabled={busy}>{busy ? "正在验证…" : "登录工作区"}<ArrowRight size={16}/></button>
+      <TextInput id="urania-email" type="email" autoComplete="username" required labelText="邮箱地址" value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@company.com" />
+      <PasswordInput id="urania-password" autoComplete="current-password" required labelText="密码" value={password} onChange={e=>setPassword(e.target.value)} placeholder="输入你的密码" />
+      {error && <InlineNotification kind="error" lowContrast title="登录失败" subtitle={error} hideCloseButton /> }
+      <CarbonButton type="submit" kind="primary" disabled={busy} className="auth-submit">{busy ? "正在验证…" : "登录工作区"}<ArrowRight size={16}/></CarbonButton>
     </form>
     <div className="auth-foot"><ShieldCheck size={14}/> 受保护的内部工作区 · Supabase Auth</div>
   </div></div>;
