@@ -3,7 +3,7 @@ import { supabase } from "./lib/supabase";
 import CRMExtras from "./components/CRMExtras";
 import ProfitCalculator from "./components/ProfitCalculator";
 import ProductScoringPanel from "./components/ProductScoringPanel";
-import { createAccount, createCollectionJob, createContact, createLead, createOpportunity, createProduct, listAccounts, listCollectionJobs, listContacts, listDataSources, listLeads, listOpportunities, listProducts, listApprovals, reviewApproval, saveProviderCredential, updateProviderState, type ApprovalRecord, type CollectionJobRecord, type AccountRecord, type ContactRecord, type LeadRecord, type OpportunityRecord, type ProductRecord } from "./lib/api";
+import { createAccount, createCollectionJob, createContact, createLead, createOpportunity, createProduct, listAccounts, listCollectionJobs, listContacts, listDataSources, listLeads, listOpportunities, listProducts, listApprovals, reviewApproval, listContacts, createEmailApproval, saveProviderCredential, updateProviderState, type ApprovalRecord, type CollectionJobRecord, type AccountRecord, type ContactRecord, type LeadRecord, type OpportunityRecord, type ProductRecord } from "./lib/api";
 import {
   Activity, ArrowRight, ArrowUpRight, BarChart3, Bell, Boxes, ClipboardList,
   Building2, Check, ChevronDown, CircleHelp, Clock3, Command, Compass, Database,
@@ -505,6 +505,11 @@ function Intelligence({ toast }: { toast: (s: string) => void }) {
 
 function Automation({ toast }: { toast: (s: string) => void }) {
   const [approvals,setApprovals]=useState<ApprovalRecord[]>([]);
+  const [approvalContacts,setApprovalContacts]=useState<ContactRecord[]>([]);
+  const [draftContactId,setDraftContactId]=useState("");
+  const [draftSubject,setDraftSubject]=useState("");
+  const [draftBody,setDraftBody]=useState("");
+  const [savingDraft,setSavingDraft]=useState(false);
   const [loading,setLoading]=useState(Boolean(supabase));
   const [error,setError]=useState("");
   const [actingId,setActingId]=useState("");
@@ -513,11 +518,22 @@ function Automation({ toast }: { toast: (s: string) => void }) {
   async function reloadApprovals(){
     if(!supabase){setLoading(false);return;}
     setLoading(true);setError("");
-    try{setApprovals(await listApprovals());}
+    try{const [rows,contactRows]=await Promise.all([listApprovals(),listContacts()]);setApprovals(rows);setApprovalContacts(contactRows);if(!draftContactId){setDraftContactId(contactRows.find(x=>x.work_email&&!x.do_not_contact)?.id||"");}}
     catch(e){setError(e instanceof Error?e.message:"无法读取人工审批队列。");}
     finally{setLoading(false);}
   }
   useEffect(()=>{void reloadApprovals();},[]);
+
+  async function submitEmailDraft(event:FormEvent){
+    event.preventDefault();setSavingDraft(true);setError("");
+    try{
+      await createEmailApproval({contact_id:draftContactId,subject:draftSubject,body:draftBody});
+      setDraftSubject("");setDraftBody("");
+      toast("首次开发邮件草稿已提交人工审批；尚未发送");
+      await reloadApprovals();
+    }catch(e){setError(e instanceof Error?e.message:"提交邮件审批失败。");}
+    finally{setSavingDraft(false);}
+  }
 
   async function decide(id:string,decision:"approved"|"rejected"){
     setActingId(id);setError("");
@@ -539,6 +555,15 @@ function Automation({ toast }: { toast: (s: string) => void }) {
     </div>
     <section className="panel">
       <div className="crm-toolbar"><div><SectionTitle title="任务与审批队列"/><p className="panel-subtitle">审批状态由数据库保存并写入审计；批准仅代表人工审核通过，不代表邮件已发送。</p></div><button className="button button--secondary" onClick={()=>void reloadApprovals()} disabled={loading}><Activity size={14}/>刷新</button></div>
+      <form className="account-form" onSubmit={submitEmailDraft}>
+        <div className="account-form-heading"><strong>提交首次开发邮件草稿</strong><span>仅保存为待审批记录，不会发送；服务端会检查联系人邮箱、禁止联系标记和处理依据。</span></div>
+        <div className="account-form-grid">
+          <label>联系人 *<select required value={draftContactId} onChange={e=>setDraftContactId(e.target.value)}><option value="">选择允许联系的联系人…</option>{approvalContacts.filter(x=>x.work_email&&!x.do_not_contact).map(x=><option key={x.id} value={x.id}>{x.full_name} · {x.company_name} · {x.work_email}</option>)}</select></label>
+          <label>邮件主题 *<input required minLength={3} maxLength={240} value={draftSubject} onChange={e=>setDraftSubject(e.target.value)} placeholder="A short introduction to our product range"/></label>
+        </div>
+        <label className="provider-scope-label">邮件正文 *<textarea required minLength={20} maxLength={12000} rows={6} value={draftBody} onChange={e=>setDraftBody(e.target.value)} placeholder="Write the proposed first-contact email…"/></label>
+        <div className="account-form-actions"><button type="submit" className="button button--primary" disabled={savingDraft||!draftContactId}>{savingDraft?"提交中…":"提交人工审批"}</button></div>
+      </form>
       {error&&<div className="inline-error" role="alert"><ShieldCheck size={15}/><span>{error}</span><button onClick={()=>void reloadApprovals()}>重试</button></div>}
       {loading?<div className="empty-state"><Activity size={24}/><strong>正在读取审批记录…</strong></div>:!isLive?<div className="empty-state"><ShieldCheck size={24}/><strong>尚未连接审批数据库</strong><span>连接并登录后，此处显示真实审批记录。</span></div>:approvals.length===0?<div className="empty-state"><ClipboardList size={24}/><strong>暂无审批请求</strong><span>当前没有待审批或历史审批记录；系统不会自动发送首次开发邮件。</span></div>:<div className="workflow-list">{approvals.map(a=>{
         const payload=a.payload||{};
