@@ -45,7 +45,11 @@ const connectors = [
   { name: "Keepa", category: "电商商品数据", detail: "Amazon 商品、价格历史与排名代理指标", state: "待配置", initials: "K", tone: "orange" },
   { name: "eBay Browse API", category: "电商商品数据", detail: "授权范围内的在售商品与商品目录", state: "待授权", initials: "e", tone: "green" },
   { name: "Google Trends", category: "市场趋势", detail: "趋势指数；官方 API 访问需确认资格", state: "待核验", initials: "G", tone: "teal" },
-  { name: "Supabase", category: "数据库", detail: "Postgres、认证与业务数据存储", state: "已连接", initials: "Sb", tone: "green" },
+  { name: "OpenAI API", category: "ai", detail: "模型推理、结构化输出与研究摘要；需服务端 OPENAI_API_KEY", state: "待配置", initials: "AI", tone: "green" },
+  { name: "Anthropic API", category: "ai", detail: "Claude 模型推理；需服务端 ANTHROPIC_API_KEY", state: "待配置", initials: "An", tone: "orange" },
+  { name: "Google Gemini API", category: "ai", detail: "Gemini 模型推理；需服务端 GEMINI_API_KEY", state: "待配置", initials: "Ge", tone: "blue" },
+  { name: "Cloudflare Workers AI", category: "ai", detail: "Cloudflare 托管模型；需启用 AI binding 与权限", state: "待配置", initials: "CF", tone: "orange" },
+  { name: "Supabase", category: "database", detail: "Postgres、认证与业务数据存储", state: "已连接", initials: "Sb", tone: "green" },
 ];
 
 const pageMeta: Record<Page, { title: string; eyebrow: string; description: string }> = {
@@ -556,7 +560,7 @@ function Integrations({ toast }: { toast: (s: string) => void }) {
   const stateLabel = (s:string) => ({planned:"待配置",pending_authorization:"待授权",configured:"已配置",active:"已启用",paused:"已暂停",disabled:"已禁用",error:"异常"}[s] || s);
   const authLabel = (s:string) => ({unknown:"权限待核验",pending:"申请中",approved:"已授权",restricted:"受限",rejected:"未通过"}[s] || s);
   return <>
-    <div className="integration-banner"><div className="integration-banner-icon"><Database size={21}/></div><div><h2>统一连接器目录</h2><p>所有数据源通过统一接口接入。密钥只存放在服务端，不写入前端代码或仓库。</p></div><Badge tone="blue">{isLive?liveConnectors.length:connectors.length} 个目录条目</Badge></div>
+    <div className="integration-banner"><div className="integration-banner-icon"><Database size={21}/></div><div><h2>统一连接器目录</h2><p>统一管理搜索、电商、企业数据与 AI 模型。密钥通过服务端 Secret 配置；浏览器和代码仓库不得保存真实密钥。</p></div><Badge tone="blue">{isLive?liveConnectors.length:connectors.length} 个目录条目</Badge></div>
     <div className="integration-summary"><MetricCard label="连接器目录" value={String(isLive?liveConnectors.length:connectors.length)} change="可扩展" icon={Database} tone="purple" note={isLive?"数据库记录":"演示清单"} /><MetricCard label="已启用" value={String(isLive?liveConnectors.filter(x=>x.status==="active").length:1)} change="真实连接需验证" icon={Check} tone="green" note="仅统计 active" /><MetricCard label="待配置 / 授权" value={String(isLive?liveConnectors.filter(x=>x.status==="planned"||x.authorization_status!=="approved").length:4)} change="需要凭证与许可" icon={Settings2} tone="orange" note="第三方数据源" /><MetricCard label="本月调用成本" value="—" change="账单未接入" icon={BarChart3} tone="blue" note="不会虚报费用" /></div>
     <section className="panel"><div className="integration-toolbar"><SectionTitle title={isLive?"数据源注册表":"数据源连接器"} /><select value={category} onChange={(e)=>setCategory(e.target.value)} aria-label="筛选连接器类别">{categories.map(c=><option key={c} value={c}>{c==="全部类别"?"全部类别":c}</option>)}</select></div>
       {error&&<div className="inline-error"><ShieldCheck size={15}/><span>{error}</span></div>}
@@ -569,7 +573,7 @@ function Integrations({ toast }: { toast: (s: string) => void }) {
         {error&&<p className="auth-error" role="alert">{error}</p>}
         <div className="account-form-actions"><button type="button" className="button button--secondary" onClick={()=>setSelectedProvider(null)}>取消</button><button type="submit" className="button button--primary" disabled={savingProvider||!attestation}>{savingProvider?"保存中…":"确认并启用 SerpApi"}</button></div>
       </form>}
-      <div className="panel-note"><ShieldCheck size={14}/>连接器目录不代表 API 已接通。第三方来源必须先核验权限、数据用途、价格、保留周期和商业使用范围；真实调用费用会记录在 usage_events。</div></section>
+      <div className="panel-note"><ShieldCheck size={14}/>连接器目录不代表 API 已接通。请在 Cloudflare Worker 对应服务中配置服务端 Secret（例如 SERPAPI_API_KEY、DATAFORSEO_LOGIN、DATAFORSEO_PASSWORD、OPENAI_API_KEY、ANTHROPIC_API_KEY、GEMINI_API_KEY）；不要把密钥填入前端源码、localStorage 或普通数据库表。当前控制台只记录授权与状态，尚未提供安全的在线密钥写入通道。</div></section>
     <section className="panel"><SectionTitle title="连接器接入原则" /><div className="evidence-grid"><div><span className="evidence-mark evidence-mark--green">01</span><strong>许可先行</strong><p>确认 API 权限、数据用途、保留周期和商业使用范围。</p></div><div><span className="evidence-mark evidence-mark--blue">02</span><strong>统一标准</strong><p>映射为标准记录，并保留供应商原始响应和来源时间。</p></div><div><span className="evidence-mark evidence-mark--amber">03</span><strong>成本可控</strong><p>设置缓存、速率限制、预算上限和失败重试策略。</p></div></div></section>
   </>;
 }
@@ -577,7 +581,7 @@ function Integrations({ toast }: { toast: (s: string) => void }) {
 function Settings({ toast }: { toast: (s: string) => void }) {
   const settings = [
     {title:"工作区与成员",desc:"用户、角色、团队和资源访问范围",icon:Users,state:"基础框架"},
-    {title:"安全与权限",desc:"RBAC、服务端密钥、RLS 与敏感操作审批",icon:ShieldCheck,state:"待实施"},
+    {title:"安全与权限",desc:"RBAC、服务端密钥、RLS 与敏感操作审批",icon:ShieldCheck,state:"部分实施"},
     {title:"数据治理",desc:"来源许可、保留期限、删除请求与数据质量",icon:Database,state:"待实施"},
     {title:"预算与成本",desc:"供应商额度、月度预算、任务成本和告警",icon:BarChart3,state:"待实施"},
     {title:"审计日志",desc:"登录、数据变更、审批和连接器配置记录",icon:Activity,state:"待实施"},
