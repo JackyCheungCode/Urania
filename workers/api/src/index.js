@@ -57,6 +57,71 @@ async function handle(request, env) {
       dataProviders: "catalog only; third-party providers are not configured by this API"
     }, 200, headers);
   }
+  if (url.pathname === "/api/v1/jobs" && request.method === "POST") {
+    if (!env.SUPABASE_URL || !env.SUPABASE_PUBLISHABLE_KEY) return json({ error: "backend_not_configured" }, 503, headers);
+    if (!env.URANIA_JOBS || typeof env.URANIA_JOBS.send !== "function") return json({ error: "queue_not_configured" }, 503, headers);
+    const authorization = request.headers.get("Authorization") || "";
+    if (!authorization.startsWith("Bearer ")) return json({ error: "authentication_required" }, 401, headers);
+    const authResponse = await fetch(env.SUPABASE_URL.replace(/\/$/, "") + "/auth/v1/user", {
+      headers: { apikey: env.SUPABASE_PUBLISHABLE_KEY, Authorization: authorization }
+    });
+    if (!authResponse.ok) return json({ error: "invalid_session" }, 401, headers);
+    const user = await authResponse.json();
+    if (!["admin", "researcher"].includes(user?.app_metadata?.urania_role)) return json({ error: "role_not_allowed" }, 403, headers);
+    let job;
+    try {
+      const text = await request.text();
+      if (text.length > 16384) return json({ error: "payload_too_large" }, 413, headers);
+      job = JSON.parse(text || "{}");
+      if (!job || Array.isArray(job) || typeof job !== "object") throw new Error("invalid_object");
+    } catch {
+      return json({ error: "invalid_json" }, 400, headers);
+    }
+    const allowedJobTypes = ["research.search", "research.refresh", "provider.health_check", "product.enrich", "crm.company_discovery"];
+    if (!allowedJobTypes.includes(job.job_type)) return json({ error: "job_type_not_allowed" }, 400, headers);
+    if (typeof job.idempotency_key !== "string" || job.idempotency_key.length < 8 || job.idempotency_key.length > 160) {
+      return json({ error: "invalid_idempotency_key" }, 400, headers);
+    }
+    const createResponse = await fetch(env.SUPABASE_URL.replace(/\/$/, "") + "/rest/v1/rpc/urania_create_collection_job", {
+      method: "POST",
+      headers: {
+        apikey: env.SUPABASE_PUBLISHABLE_KEY,
+        Authorization: authorization,
+        "Content-Type": "application/json",
+        "Accept-Profile": "public",
+        "Content-Profile": "public"
+      },
+      body: JSON.stringify({
+        p_job_type: job.job_type,
+        p_provider_key: job.provider_key || null,
+        p_market_country: job.market_country || null,
+        p_input_payload: job.input_payload || {},
+        p_idempotency_key: job.idempotency_key
+      })
+    });
+    const createText = await createResponse.text();
+    let created;
+    try { created = JSON.parse(createText); } catch { created = null; }
+    if (!createResponse.ok || !created?.data?.id) return json({ error: "job_record_failed", detail: created }, createResponse.status || 502, headers);
+    const message = {
+      schema_version: 1,
+      job_id: created.data.id,
+      job_type: job.job_type,
+      provider_key: job.provider_key || null,
+      market_country: job.market_country || null,
+      input_payload: job.input_payload || {},
+      idempotency_key: job.idempotency_key,
+      requested_by: user.id,
+      created_at: new Date().toISOString()
+    };
+    try {
+      await env.URANIA_JOBS.send(message);
+    } catch {
+      return json({ error: "queue_publish_failed", job_id: created.data.id, retry_with_same_idempotency_key: true }, 503, headers);
+    }
+    return json({ data: { id: created.data.id, status: created.data.status || "queued", queued: true } }, 202, headers);
+  }
+
   const match = url.pathname.match(/^\/api\/v1\/rpc\/([a-z_]+)$/);
   if (!match) return json({ error: "not_found" }, 404, headers);
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405, headers);
@@ -107,6 +172,7 @@ addEventListener("fetch", event => {
   event.respondWith(handle(event.request, {
     SUPABASE_URL: typeof SUPABASE_URL === "undefined" ? "" : SUPABASE_URL,
     SUPABASE_PUBLISHABLE_KEY: typeof SUPABASE_PUBLISHABLE_KEY === "undefined" ? "" : SUPABASE_PUBLISHABLE_KEY,
-    ALLOWED_ORIGINS: typeof ALLOWED_ORIGINS === "undefined" ? "" : ALLOWED_ORIGINS
+    ALLOWED_ORIGINS: typeof ALLOWED_ORIGINS === "undefined" ? "" : ALLOWED_ORIGINS,
+    URANIA_JOBS: typeof URANIA_JOBS === "undefined" ? null : URANIA_JOBS
   }));
 });
