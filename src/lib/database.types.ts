@@ -111,6 +111,16 @@ export type Database = {
         }
         Returns: Json
       }
+      urania_create_profit_scenario: {
+        Args: {
+          p_assumptions?: string
+          p_currency: string
+          p_inputs: Json
+          p_product_id?: string
+          p_scenario_type: string
+        }
+        Returns: Json
+      }
       urania_create_quote: {
         Args: {
           p_account_id: string
