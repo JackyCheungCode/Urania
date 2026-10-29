@@ -159,3 +159,24 @@ export async function createCollectionJob(input: {
   }, ["admin", "researcher"]);
   return result.data;
 }
+
+export async function updateProviderState(input: {
+  provider_key: string;
+  status: string;
+  authorization_status: string;
+  license_scope: string;
+  retention_days: number;
+}) {
+  const result = await rpc<{data:{provider_key:string;status:string;authorization_status:string;license_scope:string;retention_days:number}}>(
+    "urania_set_provider_state",
+    {
+      p_provider_key: input.provider_key,
+      p_status: input.status,
+      p_authorization_status: input.authorization_status,
+      p_license_scope: input.license_scope,
+      p_retention_days: input.retention_days,
+    },
+    ["admin"],
+  );
+  return result.data;
+}
