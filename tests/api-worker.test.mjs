@@ -168,3 +168,26 @@ test("provider credential RPC is admin-only and does not echo credential values"
   assert.equal(calls.length,2);
   assert.match(calls[1].body,/test-provider-secret-123/);
 });
+
+test("approval queue RPCs are restricted to authorized sales roles", async (t) => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url, init = {}) => {
+    calls.push(String(url));
+    if (String(url).endsWith("/auth/v1/user")) {
+      return new Response(JSON.stringify({ id: "user-sales", app_metadata: { urania_role: "sales" } }), { status: 200 });
+    }
+    return new Response(JSON.stringify({ data: [] }), { status: 200 });
+  };
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  const response = await handle(new Request("https://api.example.com/api/v1/rpc/urania_list_approvals", {
+    method: "POST",
+    headers: { authorization: "Bearer valid-test-token", "content-type": "application/json" },
+    body: JSON.stringify({ p_limit: 20 }),
+  }), baseEnv);
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { data: [] });
+  assert.equal(calls.length, 2);
+  assert.equal(calls[1], "https://project.supabase.co/rest/v1/rpc/urania_list_approvals");
+});
