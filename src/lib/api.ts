@@ -160,6 +160,31 @@ export async function createCollectionJob(input: {
   return result.data;
 }
 
+export type CollectionJobRecord = {
+  id: string;
+  job_type: string;
+  provider_key: string | null;
+  status: "queued" | "running" | "succeeded" | "failed" | "cancelled" | "dead_letter";
+  market_country: string | null;
+  query: string;
+  attempts: number;
+  max_attempts: number;
+  error_code: string | null;
+  error_message: string | null;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+  result_count: number;
+  results: Array<{title:string;url:string|null;snippet:string|null;displayed_url:string|null;rank:number;fetched_at:string}>;
+};
+
+export async function listCollectionJobs(limit = 20): Promise<CollectionJobRecord[]> {
+  const result = await rpc<{data?: CollectionJobRecord[]}>(
+    "urania_list_collection_jobs", {p_limit: Math.max(1, Math.min(50, Math.floor(limit)))}, ["admin", "researcher"]
+  );
+  return result.data ?? [];
+}
+
 export async function updateProviderState(input: {
   provider_key: string;
   status: string;
