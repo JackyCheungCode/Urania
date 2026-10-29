@@ -3,7 +3,7 @@ import { supabase } from "./lib/supabase";
 import CRMExtras from "./components/CRMExtras";
 import ProfitCalculator from "./components/ProfitCalculator";
 import ProductScoringPanel from "./components/ProductScoringPanel";
-import { createAccount, createCollectionJob, createContact, createLead, createOpportunity, createProduct, listAccounts, listCollectionJobs, listContacts, listDataSources, listLeads, listOpportunities, listProducts, updateProviderState, type CollectionJobRecord, type AccountRecord, type ContactRecord, type LeadRecord, type OpportunityRecord, type ProductRecord } from "./lib/api";
+import { createAccount, createCollectionJob, createContact, createLead, createOpportunity, createProduct, listAccounts, listCollectionJobs, listContacts, listDataSources, listLeads, listOpportunities, listProducts, saveProviderCredential, updateProviderState, type CollectionJobRecord, type AccountRecord, type ContactRecord, type LeadRecord, type OpportunityRecord, type ProductRecord } from "./lib/api";
 import {
   Activity, ArrowRight, ArrowUpRight, BarChart3, Bell, Boxes,
   Building2, Check, ChevronDown, CircleHelp, Clock3, Command, Compass, Database,
@@ -518,6 +518,7 @@ function Integrations({ toast }: { toast: (s: string) => void }) {
   const [attestation, setAttestation] = useState(false);
   const [licenseScope, setLicenseScope] = useState("SerpApi Google Search API; internal product research only; no redistribution");
   const [retentionDays, setRetentionDays] = useState("30");
+  const [providerApiKey, setProviderApiKey] = useState("");
   const [savingProvider, setSavingProvider] = useState(false);
   const isLive = Boolean(supabase);
   useEffect(() => {
@@ -542,13 +543,19 @@ function Integrations({ toast }: { toast: (s: string) => void }) {
     }
     setSavingProvider(true); setError("");
     try {
+      if (providerApiKey.trim().length < 8) {
+        setError("请输入有效的 API 密钥。");
+        return;
+      }
+      await saveProviderCredential(selectedProvider, providerApiKey.trim());
+      const nextStatus = selectedProvider === "serpapi" ? "active" : "configured";
       const updated = await updateProviderState({
-        provider_key:selectedProvider,status:"active",authorization_status:"approved",
+        provider_key:selectedProvider,status:nextStatus,authorization_status:"approved",
         license_scope:licenseScope.trim(),retention_days:days
       });
       setLiveConnectors(rows=>rows.map(x=>x.provider_key===selectedProvider?{...x,...updated}:x));
-      setSelectedProvider(null); setAttestation(false);
-      toast("授权状态已记录；真实调用仍要求服务端密钥有效。");
+      setSelectedProvider(null); setAttestation(false); setProviderApiKey("");
+      toast(selectedProvider === "serpapi" ? "SerpApi 密钥已安全保存并启用。" : "密钥已安全保存；该供应商的实际调用适配器仍需实现。");
     } catch (e) {
       setError(e instanceof Error ? e.message : "更新授权状态失败。");
     } finally { setSavingProvider(false); }
@@ -564,16 +571,17 @@ function Integrations({ toast }: { toast: (s: string) => void }) {
     <div className="integration-summary"><MetricCard label="连接器目录" value={String(isLive?liveConnectors.length:connectors.length)} change="可扩展" icon={Database} tone="purple" note={isLive?"数据库记录":"演示清单"} /><MetricCard label="已启用" value={String(isLive?liveConnectors.filter(x=>x.status==="active").length:1)} change="真实连接需验证" icon={Check} tone="green" note="仅统计 active" /><MetricCard label="待配置 / 授权" value={String(isLive?liveConnectors.filter(x=>x.status==="planned"||x.authorization_status!=="approved").length:4)} change="需要凭证与许可" icon={Settings2} tone="orange" note="第三方数据源" /><MetricCard label="本月调用成本" value="—" change="账单未接入" icon={BarChart3} tone="blue" note="不会虚报费用" /></div>
     <section className="panel"><div className="integration-toolbar"><SectionTitle title={isLive?"数据源注册表":"数据源连接器"} /><select value={category} onChange={(e)=>setCategory(e.target.value)} aria-label="筛选连接器类别">{categories.map(c=><option key={c} value={c}>{c==="全部类别"?"全部类别":c}</option>)}</select></div>
       {error&&<div className="inline-error"><ShieldCheck size={15}/><span>{error}</span></div>}
-      {loading?<div className="empty-state"><Activity size={24}/><strong>正在读取连接器目录…</strong></div>:<div className="connector-list">{isLive?filteredLive.map((x) => <div className="connector-row" key={x.provider_key}><span className="connector-logo connector-logo--blue">{x.display_name.slice(0,2)}</span><div className="connector-copy"><div><strong>{x.display_name}</strong><Badge>{x.category}</Badge></div><p>{(x.capabilities||[]).join(" · ") || "能力范围待定义"}{x.regions?.length ? " · " + x.regions.join(", ") : ""}</p><small className="table-secondary">授权：{authLabel(x.authorization_status)}</small></div><Badge tone={x.status==="active"||x.status==="configured"?"green":x.status==="error"?"amber":"neutral"}>{stateLabel(x.status)}</Badge>{x.provider_key==="serpapi"&&role==="admin"?<button className="button button--secondary button--small" onClick={()=>{setSelectedProvider(x.provider_key);setAttestation(false);setError("");}}>配置授权<ArrowRight size={13}/></button>:<button className="button button--secondary button--small" onClick={() => toast(x.display_name+"：请先完成账户授权、API 权限、价格与数据条款核验。")}>查看状态<ArrowRight size={13}/></button>}</div>):filteredDemo.map((x) => <div className={"connector-row"} key={x.name}><span className={"connector-logo connector-logo--"+x.tone}>{x.initials}</span><div className="connector-copy"><div><strong>{x.name}</strong><Badge>{x.category}</Badge></div><p>{x.detail}</p></div><Badge tone={x.state==="已连接"?"green":x.state==="待授权"?"amber":"neutral"}>{x.state}</Badge><button className="button button--secondary button--small" onClick={() => toast(x.name+" 需先确认账户授权、API 权限、价格与数据条款")}>查看状态<ArrowRight size={13}/></button></div>)}</div>}
+      {loading?<div className="empty-state"><Activity size={24}/><strong>正在读取连接器目录…</strong></div>:<div className="connector-list">{isLive?filteredLive.map((x) => <div className="connector-row" key={x.provider_key}><span className="connector-logo connector-logo--blue">{x.display_name.slice(0,2)}</span><div className="connector-copy"><div><strong>{x.display_name}</strong><Badge>{x.category}</Badge></div><p>{(x.capabilities||[]).join(" · ") || "能力范围待定义"}{x.regions?.length ? " · " + x.regions.join(", ") : ""}</p><small className="table-secondary">授权：{authLabel(x.authorization_status)}</small></div><Badge tone={x.status==="active"||x.status==="configured"?"green":x.status==="error"?"amber":"neutral"}>{stateLabel(x.status)}</Badge>{role==="admin" && x.category!=="database" ? <button className="button button--secondary button--small" onClick={()=>{setSelectedProvider(x.provider_key);setProviderApiKey("");setAttestation(false);setLicenseScope(x.display_name+" API; internal business research only; no redistribution");setError("");}}>配置密钥<ArrowRight size={13}/></button> : <button className="button button--secondary button--small" onClick={() => toast(x.display_name+"：仅管理员可配置服务端密钥。")}>查看状态<ArrowRight size={13}/></button>}</div>):filteredDemo.map((x) => <div className={"connector-row"} key={x.name}><span className={"connector-logo connector-logo--"+x.tone}>{x.initials}</span><div className="connector-copy"><div><strong>{x.name}</strong><Badge>{x.category}</Badge></div><p>{x.detail}</p></div><Badge tone={x.state==="已连接"?"green":x.state==="待授权"?"amber":"neutral"}>{x.state}</Badge><button className="button button--secondary button--small" onClick={() => toast(x.name+" 需先确认账户授权、API 权限、价格与数据条款")}>查看状态<ArrowRight size={13}/></button></div>)}</div>}
       {selectedProvider&&<form className="account-form provider-auth-form" onSubmit={(e)=>{e.preventDefault();void saveProviderAuthorization();}}>
-        <div className="account-form-heading"><strong>SerpApi 授权登记</strong><span>先在 Cloudflare Worker <code>urania-queue-consumer-dev</code> 中添加 Secret <code>SERPAPI_API_KEY</code>，再完成下方确认。密钥不会在此表单输入或保存。</span></div>
+        <div className="account-form-heading"><strong>配置 {liveConnectors.find(x=>x.provider_key===selectedProvider)?.display_name || selectedProvider} 凭证</strong><span>密钥将通过已登录的管理员会话发送到后端，并保存至 Supabase Vault。系统不会回显密钥；请勿在共享设备上填写。</span></div>
+        <label className="provider-scope-label">API 密钥 / Token *<input type="password" required minLength={8} maxLength={4096} autoComplete="new-password" value={providerApiKey} onChange={e=>setProviderApiKey(e.target.value)} placeholder="在此安全输入供应商密钥" /></label>
         <label className="provider-scope-label">许可与用途范围 *<input required minLength={8} maxLength={1000} value={licenseScope} onChange={e=>setLicenseScope(e.target.value)} /></label>
         <label className="provider-scope-label">数据保留期限（天） *<input type="number" min={1} max={3650} required value={retentionDays} onChange={e=>setRetentionDays(e.target.value)} /></label>
-        <label className="provider-attestation"><input type="checkbox" checked={attestation} onChange={e=>setAttestation(e.target.checked)}/><span>我已在 Cloudflare 配置 SerpApi 密钥，并核验该 API 的商业使用许可、配额、费用和数据保留条款。</span></label>
+        <label className="provider-attestation"><input type="checkbox" checked={attestation} onChange={e=>setAttestation(e.target.checked)}/><span>我已核验该供应商 API 的商业使用许可、配额、费用和数据保留条款，并确认该密钥仅用于授权用途。</span></label>
         {error&&<p className="auth-error" role="alert">{error}</p>}
-        <div className="account-form-actions"><button type="button" className="button button--secondary" onClick={()=>setSelectedProvider(null)}>取消</button><button type="submit" className="button button--primary" disabled={savingProvider||!attestation}>{savingProvider?"保存中…":"确认并启用 SerpApi"}</button></div>
+        <div className="account-form-actions"><button type="button" className="button button--secondary" onClick={()=>setSelectedProvider(null)}>取消</button><button type="submit" className="button button--primary" disabled={savingProvider||!attestation}>{savingProvider?"安全保存中…":selectedProvider==="serpapi"?"保存密钥并启用 SerpApi":"保存密钥并登记授权"}</button></div>
       </form>}
-      <div className="panel-note"><ShieldCheck size={14}/>连接器目录不代表 API 已接通。请在 Cloudflare Worker 对应服务中配置服务端 Secret（例如 SERPAPI_API_KEY、DATAFORSEO_LOGIN、DATAFORSEO_PASSWORD、OPENAI_API_KEY、ANTHROPIC_API_KEY、GEMINI_API_KEY）；不要把密钥填入前端源码、localStorage 或普通数据库表。当前控制台只记录授权与状态，尚未提供安全的在线密钥写入通道。</div></section>
+      <div className="panel-note"><ShieldCheck size={14}/>密钥使用 Supabase Vault 加密存储，数据库目录只保留 Secret 引用；只有管理员可以写入，密钥不会被 API 返回。当前已实现 SerpApi 的真实搜索适配器；其他供应商可以安全保存凭证并记录授权状态，但必须在接入对应服务端适配器后才能执行真实调用。</div></section>
     <section className="panel"><SectionTitle title="连接器接入原则" /><div className="evidence-grid"><div><span className="evidence-mark evidence-mark--green">01</span><strong>许可先行</strong><p>确认 API 权限、数据用途、保留周期和商业使用范围。</p></div><div><span className="evidence-mark evidence-mark--blue">02</span><strong>统一标准</strong><p>映射为标准记录，并保留供应商原始响应和来源时间。</p></div><div><span className="evidence-mark evidence-mark--amber">03</span><strong>成本可控</strong><p>设置缓存、速率限制、预算上限和失败重试策略。</p></div></div></section>
   </>;
 }
