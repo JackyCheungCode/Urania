@@ -1,25 +1,6 @@
 import { supabase, requireRole } from "./supabase";
 
-const apiBase = (import.meta.env.VITE_API_BASE_URL || "").replace(/\\/$/, "");
-
-async function rpc<T>(name: string, args: Record<string, unknown>, roles: Array<"admin" | "researcher" | "sales">): Promise<T> {
-  const client = supabase;
-  if (!client) throw new Error("Supabase is not configured.");
-  const { session } = await requireRole(roles);
-  if (apiBase) {
-    const response = await fetch(apiBase + "/api/v1/rpc/" + name, {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: "Bearer " + session.access_token },
-      body: JSON.stringify(args),
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error((payload as {message?: string; error?: string}).message || (payload as {error?: string}).error || "Urania API request failed (" + response.status + ")");
-    return payload as T;
-  }
-  const { data, error } = await client.rpc(name as never, args as never);
-  if (error) throw error;
-  return data as T;
-}
+const apiBase = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
 export type AccountRecord = {
   id: string;
@@ -49,17 +30,30 @@ export type LeadRecord = {
   contact_name: string | null;
 };
 
-async function assertConfigured() {
+async function rpc<T>(name: string, args: Record<string, unknown>, roles: Array<"admin" | "researcher" | "sales">): Promise<T> {
   if (!supabase) throw new Error("Supabase is not configured.");
-  return supabase;
+  const { session } = await requireRole(roles);
+  if (apiBase) {
+    const response = await fetch(apiBase + "/api/v1/rpc/" + name, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer " + session.access_token },
+      body: JSON.stringify(args),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const message = (payload as { message?: string; error?: string }).message || (payload as { error?: string }).error;
+      throw new Error(message || "Urania API request failed (" + response.status + ")");
+    }
+    return payload as T;
+  }
+  const { data, error } = await supabase.rpc(name as never, args as never);
+  if (error) throw error;
+  return data as T;
 }
 
 export async function listAccounts(search = ""): Promise<AccountRecord[]> {
-  const client = await assertConfigured();
-  await requireRole(["admin", "sales", "researcher"]);
-  const { data, error } = await client.rpc("urania_list_accounts", { p_search: search || null, p_limit: 100 });
-  if (error) throw error;
-  return ((data as { data?: AccountRecord[] } | null)?.data ?? []);
+  const result = await rpc<{ data?: AccountRecord[] }>("urania_list_accounts", { p_search: search || null, p_limit: 100 }, ["admin", "sales", "researcher"]);
+  return result.data ?? [];
 }
 
 export async function createAccount(input: {
@@ -70,26 +64,20 @@ export async function createAccount(input: {
   account_type?: string;
   notes?: string | null;
 }): Promise<AccountRecord> {
-  const client = await assertConfigured();
-  await requireRole(["admin", "sales"]);
-  const { data, error } = await client.rpc("urania_create_account", {
+  const result = await rpc<{ data: AccountRecord }>("urania_create_account", {
     p_company_name: input.company_name,
     p_website_url: input.website_url || null,
     p_country_code: input.country_code || null,
     p_industry: input.industry || null,
     p_account_type: input.account_type || "unknown",
     p_notes: input.notes || null,
-  });
-  if (error) throw error;
-  return (data as { data: AccountRecord }).data;
+  }, ["admin", "sales"]);
+  return result.data;
 }
 
 export async function listLeads(search = ""): Promise<LeadRecord[]> {
-  const client = await assertConfigured();
-  await requireRole(["admin", "sales", "researcher"]);
-  const { data, error } = await client.rpc("urania_list_leads", { p_search: search || null, p_limit: 100 });
-  if (error) throw error;
-  return ((data as { data?: LeadRecord[] } | null)?.data ?? []);
+  const result = await rpc<{ data?: LeadRecord[] }>("urania_list_leads", { p_search: search || null, p_limit: 100 }, ["admin", "sales", "researcher"]);
+  return result.data ?? [];
 }
 
 export async function createLead(input: {
@@ -98,33 +86,24 @@ export async function createLead(input: {
   source_url?: string | null;
   next_action_at?: string | null;
 }): Promise<LeadRecord> {
-  const client = await assertConfigured();
-  await requireRole(["admin", "sales"]);
-  const { data, error } = await client.rpc("urania_create_lead", {
+  const result = await rpc<{ data: LeadRecord }>("urania_create_lead", {
     p_lead_name: input.lead_name,
     p_account_id: input.account_id || null,
     p_contact_id: null,
     p_source_url: input.source_url || null,
     p_next_action_at: input.next_action_at || null,
-  });
-  if (error) throw error;
-  return (data as { data: LeadRecord }).data;
+  }, ["admin", "sales"]);
+  return result.data;
 }
 
-export async function listProducts(search = "") {
-  const client = await assertConfigured();
-  await requireRole(["admin", "researcher", "sales"]);
-  const { data, error } = await client.rpc("urania_list_products", { p_search: search || null, p_limit: 100 });
-  if (error) throw error;
-  return ((data as { data?: unknown[] } | null)?.data ?? []);
+export async function listProducts(search = ""): Promise<unknown[]> {
+  const result = await rpc<{ data?: unknown[] }>("urania_list_products", { p_search: search || null, p_limit: 100 }, ["admin", "researcher", "sales"]);
+  return result.data ?? [];
 }
 
-export async function listDataSources() {
-  const client = await assertConfigured();
-  await requireRole(["admin", "researcher"]);
-  const { data, error } = await client.rpc("urania_list_data_sources");
-  if (error) throw error;
-  return ((data as { data?: unknown[] } | null)?.data ?? []);
+export async function listDataSources(): Promise<unknown[]> {
+  const result = await rpc<{ data?: unknown[] }>("urania_list_data_sources", {}, ["admin", "researcher"]);
+  return result.data ?? [];
 }
 
 export async function createCollectionJob(input: {
@@ -133,16 +112,13 @@ export async function createCollectionJob(input: {
   market_country?: string | null;
   input_payload?: Record<string, unknown>;
   idempotency_key: string;
-}) {
-  const client = await assertConfigured();
-  await requireRole(["admin", "researcher"]);
-  const { data, error } = await client.rpc("urania_create_collection_job", {
+}): Promise<{ id: string; status: string }> {
+  const result = await rpc<{ data: { id: string; status: string } }>("urania_create_collection_job", {
     p_job_type: input.job_type,
     p_provider_key: input.provider_key || null,
     p_market_country: input.market_country || null,
     p_input_payload: input.input_payload || {},
     p_idempotency_key: input.idempotency_key,
-  });
-  if (error) throw error;
-  return (data as { data: { id: string; status: string } }).data;
+  }, ["admin", "researcher"]);
+  return result.data;
 }
