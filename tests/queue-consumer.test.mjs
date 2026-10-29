@@ -156,3 +156,66 @@ test("provider error payloads are not persisted verbatim", async (t) => {
   assert.match(updates[0].p_error_message, /inspect worker logs/i);
   assert.equal(updates[0].p_error_message.includes("do-not-store-this"), false);
 });
+
+test("Apollo company discovery maps organization results into normalized research records", async (t) => {
+  const originalFetch=globalThis.fetch; const stored=[];
+  globalThis.fetch=async (url,init={})=>{
+    if(String(url).includes("api.apollo.io")){
+      assert.equal(init.method,"POST");
+      assert.equal(new Headers(init.headers).get("x-api-key"),"apollo-test-key");
+      return rpcResponse({organizations:[{id:"org-1",name:"Example Ltd",website_url:"https://example.com",primary_domain:"example.com",industry:"Retail",estimated_num_employees:120,country:"GB"}]});
+    }
+    const body=JSON.parse(init.body);
+    if(body.action==="urania_worker_claim_job")return rpcResponse({claimed:true});
+    if(body.action==="urania_worker_get_provider")return rpcResponse({status:"active",authorization_status:"approved",api_key:"apollo-test-key"});
+    if(body.action==="urania_worker_store_search_results"){stored.push(body);return rpcResponse({status:"succeeded"});}
+    throw new Error("unexpected action "+body.action);
+  };
+  t.after(()=>{globalThis.fetch=originalFetch;});
+  const message=makeMessage({schema_version:1,job_id:"job-apollo",job_type:"crm.company_discovery",provider_key:"apollo",input_payload:{query:"sustainable home retailers"}});
+  await consumer.queue({messages:[message]},{SUPABASE_URL:"https://project.supabase.co",URANIA_INTERNAL_TOKEN:"test-token"});
+  assert.equal(message.calls.ack,1);
+  assert.equal(stored.length,1);
+  assert.equal(stored[0].p_provider_key,"apollo");
+  assert.equal(stored[0].p_results[0].title,"Example Ltd");
+  assert.equal(stored[0].p_results[0].displayed_link,"example.com");
+});
+
+test("Hunter contact enrichment requires purpose and lawful basis and keeps API key out of URLs", async (t) => {
+  const originalFetch=globalThis.fetch; const stored=[];
+  globalThis.fetch=async (url,init={})=>{
+    if(String(url).includes("api.hunter.io")){
+      assert.equal(String(url).includes("hunter-test-key"),false);
+      assert.equal(new Headers(init.headers).get("X-API-KEY"),"hunter-test-key");
+      return rpcResponse({data:{emails:[{value:"buyer@example.com",first_name:"Alex",last_name:"Buyer",position:"Procurement",department:"purchasing",confidence:94,verification:{status:"valid"}}]}});
+    }
+    const body=JSON.parse(init.body);
+    if(body.action==="urania_worker_claim_job")return rpcResponse({claimed:true});
+    if(body.action==="urania_worker_get_provider")return rpcResponse({status:"active",authorization_status:"approved",api_key:"hunter-test-key"});
+    if(body.action==="urania_worker_store_search_results"){stored.push(body);return rpcResponse({status:"succeeded"});}
+    throw new Error("unexpected action "+body.action);
+  };
+  t.after(()=>{globalThis.fetch=originalFetch;});
+  const message=makeMessage({schema_version:1,job_id:"job-hunter",job_type:"crm.contact_enrichment",provider_key:"hunter",market_country:"GB",input_payload:{query:"example.com",domain:"example.com",lawful_basis:"legitimate_interest",purpose:"B2B supplier research and relevant product introduction"}});
+  await consumer.queue({messages:[message]},{SUPABASE_URL:"https://project.supabase.co",URANIA_INTERNAL_TOKEN:"test-token"});
+  assert.equal(message.calls.ack,1);
+  assert.equal(stored.length,1);
+  assert.equal(stored[0].p_results[0].email,"buyer@example.com");
+  assert.match(stored[0].p_results[0].snippet,/Procurement/);
+});
+
+test("Hunter contact enrichment fails closed when lawful basis is missing", async (t) => {
+  const originalFetch=globalThis.fetch; const actions=[];
+  globalThis.fetch=async (_url,init={})=>{
+    const body=JSON.parse(init.body);actions.push(body.action);
+    if(body.action==="urania_worker_claim_job")return rpcResponse({claimed:true});
+    if(body.action==="urania_worker_get_provider")return rpcResponse({status:"active",authorization_status:"approved",api_key:"hunter-test-key"});
+    if(body.action==="urania_worker_update_job")return rpcResponse({status:"failed"});
+    throw new Error("third-party request must not run");
+  };
+  t.after(()=>{globalThis.fetch=originalFetch;});
+  const message=makeMessage({schema_version:1,job_id:"job-hunter-blocked",job_type:"crm.contact_enrichment",provider_key:"hunter",market_country:"GB",input_payload:{query:"example.com",domain:"example.com",purpose:"B2B supplier research and relevant product introduction"}});
+  await consumer.queue({messages:[message]},{SUPABASE_URL:"https://project.supabase.co",URANIA_INTERNAL_TOKEN:"test-token"});
+  assert.equal(message.calls.ack,1);
+  assert.deepEqual(actions,["urania_worker_claim_job","urania_worker_get_provider","urania_worker_update_job"]);
+});
