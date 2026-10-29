@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { supabase } from "./lib/supabase";
-import { createAccount, listDataSources, type AccountRecord, type LeadRecord } from "./lib/api";
+import { createAccount, listAccounts, listDataSources, listLeads, type AccountRecord, type LeadRecord } from "./lib/api";
 import {
   Activity, ArrowRight, ArrowUpRight, BarChart3, Bell, Boxes,
   Building2, Check, ChevronDown, CircleHelp, Clock3, Command, Compass, Database,
@@ -226,16 +226,14 @@ function CRM({ data, toast }: { data: typeof leads; toast: (s: string) => void }
     if (!supabase) return;
     setLoading(true); setError("");
     try {
-      const [{ data: accountData }, { data: leadData }, { data: userData }] = await Promise.all([
-        supabase.rpc("urania_list_accounts", { p_search: null, p_limit: 100 }),
-        supabase.rpc("urania_list_leads", { p_search: null, p_limit: 100 }),
+      const [accountRows, leadRows, { data: userData }] = await Promise.all([
+        listAccounts(),
+        listLeads(),
         supabase.auth.getUser(),
       ]);
-      if (accountData && typeof accountData === "object" && "data" in accountData) setAccounts((accountData as {data: AccountRecord[]}).data || []);
-      if (leadData && typeof leadData === "object" && "data" in leadData) setLiveLeads((leadData as {data: LeadRecord[]}).data || []);
+      setAccounts(accountRows);
+      setLiveLeads(leadRows);
       setRole((userData.user?.app_metadata?.urania_role as string | undefined) ?? null);
-      const firstError = (accountData as {message?:string}|null)?.message || (leadData as {message?:string}|null)?.message;
-      if (firstError) setError(firstError);
     } catch (e) {
       setError(e instanceof Error ? e.message : "读取 CRM 数据失败。");
     } finally { setLoading(false); }
