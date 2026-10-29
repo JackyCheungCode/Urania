@@ -15,7 +15,7 @@ The UI is organized by user workflows rather than provider names. SerpApi, DataF
 - Frontend: React + TypeScript + Vite, static output in `dist/`.
 - Application API: dedicated Urania Worker, separate from existing unrelated Workers.
 - Async work: Urania-specific Cloudflare Queues and a dead-letter queue, created only after existing resource audit and explicit implementation of queue consumers.
-- Data: existing Urania Supabase project, using a dedicated application schema and migrations after RLS and access boundaries are reviewed.
+- Data: existing Urania Supabase project with dedicated `research`, `crm`, `integrations`, `automation` and `audit` schemas. The foundation migration is applied; all 22 tables have RLS enabled and no client policies/grants yet (default deny).
 - Secrets: server-side only; no provider credentials in browser bundles, GitHub or SQL seed data.
 
 ## Evidence model
@@ -56,7 +56,7 @@ AI can explain evidence and form hypotheses. It must not invent metrics or silen
 - [x] Product research and CRM prototype screens.
 - [x] Connector directory and automation/approval prototype.
 - [ ] Authentication and role-based authorization.
-- [ ] Database migrations, RLS and automated tests.
+- [x] Initial Supabase foundation migration applied (22 tables; RLS enabled, default deny).\n- [x] Provider inventory seeded (20 connectors; third-party permissions remain unverified).\n- [ ] Reviewed RLS policies for authenticated UI and server-side API access.\n- [ ] Database migration tests and automated app tests.
 - [ ] Real connector adapters and provider credentials.
 - [ ] Queue consumers, retry/DLQ and observability.
 - [ ] Production deployment and smoke tests.
