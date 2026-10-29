@@ -1,5 +1,5 @@
 -- Urania foundation schema draft.
--- Intentionally NOT applied to the connected Supabase project in this commit.
+-- Applied to the connected Urania Supabase project; retain this file as the migration source of truth.
 -- Client roles receive no table grants/policies yet; access must be added only with reviewed RLS rules.
 
 create schema if not exists research;
