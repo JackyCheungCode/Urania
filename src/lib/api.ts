@@ -53,7 +53,16 @@ async function rpc<T>(name: string, args: Record<string, unknown>, roles: Array<
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
-      const message = (payload as { message?: string; error?: string }).message || (payload as { error?: string }).error;
+      const apiError = (payload as { message?: string; error?: string }).error;
+      // Fail over only when the API explicitly reports missing backend configuration.
+      // The Supabase RPC still enforces the authenticated user's database grants/RLS.
+      // Never fall back on authorization, validation, or upstream business errors.
+      if (response.status === 503 && apiError === "backend_not_configured") {
+        const { data, error } = await supabase.rpc(name as never, args as never);
+        if (error) throw error;
+        return data as T;
+      }
+      const message = (payload as { message?: string; error?: string }).message || apiError;
       throw new Error(message || "Urania API request failed (" + response.status + ")");
     }
     return payload as T;
