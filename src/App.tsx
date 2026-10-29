@@ -3,7 +3,7 @@ import { supabase } from "./lib/supabase";
 import CRMExtras from "./components/CRMExtras";
 import ProfitCalculator from "./components/ProfitCalculator";
 import ProductScoringPanel from "./components/ProductScoringPanel";
-import { createAccount, createCollectionJob, createContact, createLead, createOpportunity, createProduct, listAccounts, listCollectionJobs, listContacts, listDataSources, listLeads, listOpportunities, listProducts, saveProviderCredential, updateProviderState, type CollectionJobRecord, type AccountRecord, type ContactRecord, type LeadRecord, type OpportunityRecord, type ProductRecord } from "./lib/api";
+import { createAccount, createCollectionJob, createContact, createLead, createOpportunity, createProduct, listAccounts, listCollectionJobs, listContacts, listDataSources, listLeads, listOpportunities, listProducts, listApprovals, reviewApproval, saveProviderCredential, updateProviderState, type ApprovalRecord, type CollectionJobRecord, type AccountRecord, type ContactRecord, type LeadRecord, type OpportunityRecord, type ProductRecord } from "./lib/api";
 import {
   Activity, ArrowRight, ArrowUpRight, BarChart3, Bell, Boxes,
   Building2, Check, ChevronDown, CircleHelp, Clock3, Command, Compass, Database,
@@ -137,7 +137,6 @@ function Dashboard({ onSignOut }: { onSignOut: () => Promise<void> }) {
   const [mobileNav, setMobileNav] = useState(false);
   const [notice, setNotice] = useState("");
   const [filter, setFilter] = useState("全部市场");
-  const [approved, setApproved] = useState<string[]>([]);
   const [createCustomerRequest, setCreateCustomerRequest] = useState(0);
 
   const current = pageMeta[page];
@@ -215,7 +214,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => Promise<void> }) {
         {page === "research" && <Research filter={filter} setFilter={setFilter} data={filteredOpportunities} query={query} toast={toast} />}
         {page === "crm" && <CRM data={visibleLeads} toast={toast} createCustomerRequest={createCustomerRequest} />}
         {page === "intelligence" && <Intelligence toast={toast} />}
-        {page === "automation" && <Automation approved={approved} setApproved={setApproved} toast={toast} />}
+        {page === "automation" && <Automation toast={toast} />}
         {page === "integrations" && <Integrations toast={toast} />}
         {page === "settings" && <Settings toast={toast} />}
         <footer className="page-footer"><span>© 2026 Urania Intelligence</span><span><span className="status-dot status-dot--warning" />实时模块与演示模块并存 · 请以数据来源标记为准</span><button onClick={() => toast("当前版本 0.1.0 · Foundation；生产部署状态需单独核验。")}><ShieldCheck size={13} />版本 0.1.0</button></footer>
@@ -504,15 +503,57 @@ function Intelligence({ toast }: { toast: (s: string) => void }) {
   </>;
 }
 
-function Automation({ approved, setApproved, toast }: { approved: string[]; setApproved: (v: string[]) => void; toast: (s: string) => void }) {
-  const tasks = [
-    {id:"email-1",title:"Nordlicht Trading · 产品引荐邮件",meta:"首次开发 · 英国英语 · 目标产品：可持续家居",type:"邮件审批",status:"待审核"},
-    {id:"email-2",title:"BrightPath Retail · 采购需求跟进",meta:"首次开发 · 英语 · 目标产品：户外与能源",type:"邮件审批",status:"待审核"},
-    {id:"data-1",title:"刷新关键词趋势数据",meta:"市场：美国、德国、英国 · 搜索连接器待配置",type:"数据任务",status:"等待连接器"},
-  ];
+function Automation({ toast }: { toast: (s: string) => void }) {
+  const [approvals,setApprovals]=useState<ApprovalRecord[]>([]);
+  const [loading,setLoading]=useState(Boolean(supabase));
+  const [error,setError]=useState("");
+  const [actingId,setActingId]=useState("");
+  const isLive=Boolean(supabase);
+
+  async function reloadApprovals(){
+    if(!supabase){setLoading(false);return;}
+    setLoading(true);setError("");
+    try{setApprovals(await listApprovals());}
+    catch(e){setError(e instanceof Error?e.message:"无法读取人工审批队列。");}
+    finally{setLoading(false);}
+  }
+  useEffect(()=>{void reloadApprovals();},[]);
+
+  async function decide(id:string,decision:"approved"|"rejected"){
+    setActingId(id);setError("");
+    try{
+      await reviewApproval(id,decision);
+      toast(decision==="approved"?"审批已通过并记录审计":"审批已拒绝并记录审计");
+      await reloadApprovals();
+    }catch(e){setError(e instanceof Error?e.message:"更新审批状态失败。");}
+    finally{setActingId("");}
+  }
+
+  const pending=approvals.filter(a=>a.status==="pending").length;
   return <>
-    <div className="metric-grid"><MetricCard label="运行中的工作流" value="4" change="2 个待配置" icon={Workflow} tone="purple" note="演示状态" /><MetricCard label="待人工审批" value={String(Math.max(0,2-approved.length))} change="首次开发邮件" icon={ShieldCheck} tone="orange" note="需人工审核" /><MetricCard label="队列失败任务" value="0" change="尚未启用" icon={Activity} tone="green" note="无真实队列" /><MetricCard label="本月 API 成本" value="$0.00" change="未启用调用" icon={Database} tone="blue" note="真实账单待接入" /></div>
-    <section className="panel"><SectionTitle title="任务与审批队列" action="刷新" onAction={() => toast("任务列表已刷新（演示数据）")} /><div className="workflow-list">{tasks.map((task) => <div className="workflow-row" key={task.id}><span className={`workflow-icon ${task.type==="邮件审批"?"workflow-icon--mail":"workflow-icon--data"}`}>{task.type==="邮件审批"?<Mail size={17}/>:<Database size={17}/>}</span><div className="workflow-copy"><strong>{task.title}</strong><small>{task.meta}</small></div><Badge tone={approved.includes(task.id)?"green":task.type==="邮件审批"?"amber":"neutral"}>{approved.includes(task.id)?"已批准":task.status}</Badge><div className="workflow-actions">{task.type==="邮件审批"&&!approved.includes(task.id)?<><button className="button button--secondary button--small" onClick={() => toast("请先完成邮件内容、收件人和合规审查")} >查看草稿</button><button className="button button--primary button--small" onClick={() => {setApproved([...approved,task.id]);toast("已在演示界面记录审批状态；未发送邮件")}}>批准</button></>:<button className="icon-button" onClick={() => toast("此任务将在连接真实队列后运行")}><ArrowRight size={15}/></button>}</div></div>)}</div><div className="panel-note"><ShieldCheck size={14}/>演示批准仅改变本地界面状态，不会发送邮件。生产环境必须由服务端执行授权校验、审批审计与退订检查。</div></section>
+    <div className="metric-grid">
+      <MetricCard label="人工审批队列" value={isLive?String(approvals.length):"—"} change={isLive?"真实数据库记录":"需要登录连接"} icon={ShieldCheck} tone="purple" note={isLive?"Supabase":"未连接"} />
+      <MetricCard label="待人工审批" value={isLive?String(pending):"—"} change="首次外联不得自动发送" icon={Mail} tone="orange" note="人工决定" />
+      <MetricCard label="队列失败任务" value="—" change="需接入实时监控" icon={Activity} tone="green" note="监控未接入" />
+      <MetricCard label="本月 API 成本" value="—" change="需接入账单统计" icon={Database} tone="blue" note="账单未接入" />
+    </div>
+    <section className="panel">
+      <div className="crm-toolbar"><div><SectionTitle title="任务与审批队列"/><p className="panel-subtitle">审批状态由数据库保存并写入审计；批准仅代表人工审核通过，不代表邮件已发送。</p></div><button className="button button--secondary" onClick={()=>void reloadApprovals()} disabled={loading}><Activity size={14}/>刷新</button></div>
+      {error&&<div className="inline-error" role="alert"><ShieldCheck size={15}/><span>{error}</span><button onClick={()=>void reloadApprovals()}>重试</button></div>}
+      {loading?<div className="empty-state"><Activity size={24}/><strong>正在读取审批记录…</strong></div>:!isLive?<div className="empty-state"><ShieldCheck size={24}/><strong>尚未连接审批数据库</strong><span>连接并登录后，此处显示真实审批记录。</span></div>:approvals.length===0?<div className="empty-state"><ClipboardList size={24}/><strong>暂无审批请求</strong><span>当前没有待审批或历史审批记录；系统不会自动发送首次开发邮件。</span></div>:<div className="workflow-list">{approvals.map(a=>{
+        const payload=a.payload||{};
+        const subject=typeof payload.subject==="string"?payload.subject:a.subject_type+" · "+a.subject_id.slice(0,8);
+        const recipient=typeof payload.to==="string"?payload.to:typeof payload.recipient==="string"?payload.recipient:"未提供收件人";
+        const statusLabel=({pending:"待审核",approved:"已批准",rejected:"已拒绝",cancelled:"已取消"} as Record<string,string>)[a.status]||a.status;
+        return <div className="workflow-row" key={a.id}>
+          <span className="workflow-icon workflow-icon--mail"><Mail size={17}/></span>
+          <div className="workflow-copy"><strong>{subject}</strong><small>{a.approval_type==="outbound_email"?"首次外联邮件":a.approval_type} · {recipient} · {new Date(a.requested_at).toLocaleString()}</small>{a.review_note&&<small>审核意见：{a.review_note}</small>}</div>
+          <Badge tone={a.status==="approved"?"green":a.status==="pending"?"amber":"neutral"}>{statusLabel}</Badge>
+          <div className="workflow-actions">{a.status==="pending"?<><button className="button button--secondary button--small" disabled={actingId===a.id} onClick={()=>void decide(a.id,"rejected")}>拒绝</button><button className="button button--primary button--small" disabled={actingId===a.id} onClick={()=>void decide(a.id,"approved")}>{actingId===a.id?"处理中…":"批准"}</button></>:<span className="table-secondary">{a.reviewed_at?new Date(a.reviewed_at).toLocaleString():"—"}</span>}</div>
+        </div>;
+      })}</div>}
+      <div className="panel-note"><ShieldCheck size={14}/>批准/拒绝通过受限 RPC 执行并记录审核人和时间；此处不会触发邮件发送。邮件发送端必须另行校验审批状态。</div>
+    </section>
     <section className="panel"><SectionTitle title="工作流目录" /><div className="workflow-catalog">{[{name:"全球产品发现",desc:"关键词 → 搜索数据 → 去重 → 机会评分",icon:Compass},{name:"企业线索发现",desc:"目标市场 → 企业搜索 → 画像丰富 → 人工复核",icon:Building2},{name:"产品与客户匹配",desc:"产品画像 → 企业需求 → 匹配分数 → CRM 线索",icon:Target},{name:"研究报告生成",desc:"证据聚合 → 风险检查 → AI 报告",icon:Sparkles}].map(x=><div className="catalog-row" key={x.name}><span className="feature-icon feature-icon--purple"><x.icon size={17}/></span><div><strong>{x.name}</strong><small>{x.desc}</small></div><Badge>规划中</Badge><button className="icon-button" onClick={() => toast(`${x.name} 将在工作流引擎开发后启用`) }><ArrowRight size={15}/></button></div>)}</div></section>
   </>;
 }
