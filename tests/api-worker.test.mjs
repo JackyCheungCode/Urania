@@ -85,3 +85,29 @@ test("admin-only RPC is denied to a researcher even with a valid session", async
   assert.deepEqual(await response.json(), { error: "role_not_allowed" });
   assert.equal(calls, 1);
 });
+
+test("researchers can request their authorized collection job history", async (t) => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url, init = {}) => {
+    calls.push(String(url));
+    if (String(url).endsWith("/auth/v1/user")) {
+      return new Response(JSON.stringify({ id: "user-researcher", app_metadata: { urania_role: "researcher" } }), {
+        status: 200, headers: { "content-type": "application/json" },
+      });
+    }
+    assert.equal(String(url), "https://project.supabase.co/rest/v1/rpc/urania_list_collection_jobs");
+    assert.equal(init.method, "POST");
+    return new Response(JSON.stringify({ data: [] }), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  const response = await handle(new Request("https://api.example.com/api/v1/rpc/urania_list_collection_jobs", {
+    method: "POST",
+    headers: { authorization: "Bearer valid-test-token", "content-type": "application/json" },
+    body: JSON.stringify({ p_limit: 20 }),
+  }), baseEnv);
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { data: [] });
+  assert.equal(calls.length, 2);
+});
