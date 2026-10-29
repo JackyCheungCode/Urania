@@ -5,7 +5,7 @@ import ProfitCalculator from "./components/ProfitCalculator";
 import ProductScoringPanel from "./components/ProductScoringPanel";
 import { createAccount, createCollectionJob, createContact, createLead, createOpportunity, createProduct, listAccounts, listCollectionJobs, listContacts, listDataSources, listLeads, listOpportunities, listProducts, listApprovals, reviewApproval, saveProviderCredential, updateProviderState, type ApprovalRecord, type CollectionJobRecord, type AccountRecord, type ContactRecord, type LeadRecord, type OpportunityRecord, type ProductRecord } from "./lib/api";
 import {
-  Activity, ArrowRight, ArrowUpRight, BarChart3, Bell, Boxes,
+  Activity, ArrowRight, ArrowUpRight, BarChart3, Bell, Boxes, ClipboardList,
   Building2, Check, ChevronDown, CircleHelp, Clock3, Command, Compass, Database,
   Download, FileSearch, Globe2, LayoutDashboard, ListTodo,
   Mail, Menu, MoreHorizontal, Plus, Search, Settings2, ShieldCheck, Sparkles,
