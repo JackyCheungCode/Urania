@@ -19,7 +19,8 @@ const ALLOWED_RPCS = {
   urania_set_quote_status: { method: "POST", roles: ["admin", "sales"] },
   urania_list_orders: { method: "POST", roles: ["admin", "sales"] },
   urania_create_order: { method: "POST", roles: ["admin", "sales"] },
-  urania_create_profit_scenario: { method: "POST", roles: ["admin", "researcher", "sales"] }
+  urania_create_profit_scenario: { method: "POST", roles: ["admin", "researcher", "sales"] },
+  urania_create_product_score: { method: "POST", roles: ["admin", "researcher"] }
 };
 
 function json(body, status = 200, headers = {}) {
