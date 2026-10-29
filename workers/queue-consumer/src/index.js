@@ -75,8 +75,9 @@ async function processMessage(message, env) {
     await failAndAck(message,env,"provider_adapter_not_implemented","This provider has no worker adapter in the current release.");
     return;
   }
-  if (!env.SERPAPI_API_KEY) {
-    await failAndAck(message,env,"provider_not_configured","Configure SERPAPI_API_KEY as a Cloudflare secret before enabling this provider.");
+  const providerApiKey = provider?.api_key || env.SERPAPI_API_KEY;
+  if (!providerApiKey) {
+    await failAndAck(message,env,"provider_not_configured","Configure this provider credential in the Urania API Integration Center or set the server-side SERPAPI_API_KEY fallback.");
     return;
   }
   if (job.job_type !== "research.search" && job.job_type !== "research.refresh") {
@@ -95,7 +96,7 @@ async function processMessage(message, env) {
     const params = new URLSearchParams({
       engine:"google",
       q:query.trim(),
-      api_key:env.SERPAPI_API_KEY,
+      api_key:providerApiKey,
       num:"10",
       hl:"en"
     });
