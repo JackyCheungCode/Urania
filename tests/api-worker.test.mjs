@@ -111,3 +111,35 @@ test("researchers can request their authorized collection job history", async (t
   assert.deepEqual(await response.json(), { data: [] });
   assert.equal(calls.length, 2);
 });
+
+
+test("placeholder Supabase publishable key is treated as unconfigured", async () => {
+  const response = await handle(new Request("https://api.example.com/health"), {
+    ...baseEnv,
+    SUPABASE_PUBLISHABLE_KEY: "CONFIGURE_IN_CLOUDFLARE_DASHBOARD",
+  });
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).supabaseConfigured, false);
+});
+
+test("RPC returns a safe actionable message for backend permission errors", async (t) => {
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async (url) => {
+    calls += 1;
+    if (String(url).endsWith("/auth/v1/user")) {
+      return new Response(JSON.stringify({ id: "user-sales", app_metadata: { urania_role: "sales" } }), { status: 200 });
+    }
+    return new Response(JSON.stringify({ code: "42501", message: "permission denied", details: "internal" }), { status: 403 });
+  };
+  t.after(() => { globalThis.fetch = originalFetch; });
+  const response = await handle(new Request("https://api.example.com/api/v1/rpc/urania_create_account", {
+    method: "POST", headers: { authorization: "Bearer valid-test-token", "content-type": "application/json" }, body: JSON.stringify({ p_company_name: "Example Ltd" }),
+  }), baseEnv);
+  assert.equal(response.status, 403);
+  const body = await response.json();
+  assert.equal(body.code, "42501");
+  assert.match(body.message, /权限不足/);
+  assert.equal(JSON.stringify(body).includes("internal"), false);
+  assert.equal(calls, 2);
+});
