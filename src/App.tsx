@@ -72,7 +72,55 @@ function MetricCard({ label, value, change, icon: Icon, tone, note }: { label: s
   </article>;
 }
 
+function LoginScreen({ onLogin }: { onLogin: (email: string, password: string) => Promise<void> }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    setError("");
+    setBusy(true);
+    try { await onLogin(email.trim(), password); }
+    catch (e) { setError(e instanceof Error ? e.message : "登录失败，请检查账号和密码。"); }
+    finally { setBusy(false); }
+  }
+  return <div className="auth-screen"><div className="auth-card">
+    <div className="auth-brand"><div className="brand-mark"><Sparkles size={20} strokeWidth={2.2} /></div><div><div className="brand-name">urania<span>.</span></div><div className="brand-sub">GLOBAL INTELLIGENCE</div></div></div>
+    <div className="auth-heading"><span>INTERNAL WORKSPACE</span><h1>欢迎回来</h1><p>登录 Urania，继续你的全球产品研究与客户开发。</p></div>
+    <form className="auth-form" onSubmit={submit}>
+      <label htmlFor="urania-email">邮箱地址</label><input id="urania-email" type="email" autoComplete="username" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="name@company.com" />
+      <label htmlFor="urania-password">密码</label><input id="urania-password" type="password" autoComplete="current-password" required value={password} onChange={e=>setPassword(e.target.value)} placeholder="输入你的密码" />
+      {error && <div className="auth-error" role="alert">{error}</div>}
+      <button className="button button--primary auth-submit" type="submit" disabled={busy}>{busy ? "正在验证…" : "登录工作区"}<ArrowRight size={16}/></button>
+    </form>
+    <div className="auth-foot"><ShieldCheck size={14}/> 受保护的内部工作区 · Supabase Auth</div>
+  </div></div>;
+}
+
 export default function App() {
+  const [signedIn, setSignedIn] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
+  useEffect(() => {
+    if (!supabase) { setAuthReady(true); return; }
+    supabase.auth.getSession().then(({ data }) => setSignedIn(Boolean(data.session))).finally(() => setAuthReady(true));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSignedIn(Boolean(session));
+      setAuthReady(true);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+  async function login(email: string, password: string) {
+    if (!supabase) throw new Error("认证服务尚未配置，请联系管理员。");
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+  }
+  if (!authReady) return <div className="auth-screen"><div className="auth-loading">正在连接 Urania 安全登录…</div></div>;
+  if (!signedIn) return <LoginScreen onLogin={login} />;
+  return <Dashboard />;
+}
+
+function Dashboard() {
   const [page, setPage] = useState<Page>("overview");
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
