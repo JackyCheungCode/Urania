@@ -191,3 +191,29 @@ test("approval queue RPCs are restricted to authorized sales roles", async (t) =
   assert.equal(calls.length, 2);
   assert.equal(calls[1], "https://project.supabase.co/rest/v1/rpc/urania_list_approvals");
 });
+
+test("first-contact email approval creation RPC is restricted and forwarded for sales", async (t) => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url, init = {}) => {
+    calls.push(String(url));
+    if (String(url).endsWith("/auth/v1/user")) {
+      return new Response(JSON.stringify({ id: "user-sales", app_metadata: { urania_role: "sales" } }), { status: 200 });
+    }
+    assert.match(String(url), /\/rest\/v1\/rpc\/urania_create_email_approval$/);
+    const body = JSON.parse(init.body);
+    assert.equal(body.p_contact_id, "contact-1");
+    assert.equal(body.p_subject, "Introductory note");
+    return new Response(JSON.stringify({ data: { status: "pending" } }), { status: 200 });
+  };
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  const response = await handle(new Request("https://api.example.com/api/v1/rpc/urania_create_email_approval", {
+    method: "POST",
+    headers: { authorization: "Bearer valid-test-token", "content-type": "application/json" },
+    body: JSON.stringify({ p_contact_id: "contact-1", p_subject: "Introductory note", p_body: "A proposed email body with enough detail." }),
+  }), baseEnv);
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).data.status, "pending");
+  assert.equal(calls.length, 2);
+});
