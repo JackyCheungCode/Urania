@@ -1,8 +1,8 @@
 import { useMemo, useState, type ReactNode } from "react";
 import {
-  Activity, ArrowDownRight, ArrowRight, ArrowUpRight, BarChart3, Bell, Boxes,
+  Activity, ArrowRight, ArrowUpRight, BarChart3, Bell, Boxes,
   Building2, Check, ChevronDown, CircleHelp, Clock3, Command, Compass, Database,
-  Download, ExternalLink, FileSearch, Filter, Globe2, LayoutDashboard, ListTodo,
+  Download, FileSearch, Filter, Globe2, LayoutDashboard, ListTodo,
   Mail, Menu, MoreHorizontal, Plus, Search, Settings2, ShieldCheck, Sparkles,
   Target, TrendingUp, Users, Workflow, X, Zap,
 } from "lucide-react";
@@ -74,7 +74,6 @@ export default function App() {
   const [mobileNav, setMobileNav] = useState(false);
   const [notice, setNotice] = useState("");
   const [filter, setFilter] = useState("全部市场");
-  const [showAll, setShowAll] = useState(false);
   const [approved, setApproved] = useState<string[]>([]);
 
   const current = pageMeta[page];
