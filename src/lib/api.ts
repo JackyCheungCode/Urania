@@ -17,6 +17,18 @@ export type AccountRecord = {
   updated_at: string;
 };
 
+export type ProductRecord = {
+  id: string;
+  canonical_name: string;
+  description: string | null;
+  category_path: string[];
+  brand: string | null;
+  attributes?: Record<string, unknown>;
+  status: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export type LeadRecord = {
   id: string;
   lead_name: string;
@@ -96,9 +108,19 @@ export async function createLead(input: {
   return result.data;
 }
 
-export async function listProducts(search = ""): Promise<unknown[]> {
-  const result = await rpc<{ data?: unknown[] }>("urania_list_products", { p_search: search || null, p_limit: 100 }, ["admin", "researcher", "sales"]);
+export async function listProducts(search = ""): Promise<ProductRecord[]> {
+  const result = await rpc<{ data?: ProductRecord[] }>("urania_list_products", { p_search: search || null, p_limit: 100 }, ["admin", "researcher", "sales"]);
   return result.data ?? [];
+}
+
+export async function createProduct(input: { canonical_name: string; description?: string; category_path?: string[]; brand?: string }): Promise<ProductRecord> {
+  const result = await rpc<{ data: ProductRecord }>("urania_create_product", {
+    p_canonical_name: input.canonical_name,
+    p_description: input.description || null,
+    p_category_path: input.category_path || [],
+    p_brand: input.brand || null,
+  }, ["admin", "researcher"]);
+  return result.data;
 }
 
 export async function listDataSources(): Promise<unknown[]> {
@@ -113,6 +135,21 @@ export async function createCollectionJob(input: {
   input_payload?: Record<string, unknown>;
   idempotency_key: string;
 }): Promise<{ id: string; status: string }> {
+  if (apiBase) {
+    if (!supabase) throw new Error("Supabase is not configured.");
+    const { session } = await requireRole(["admin", "researcher"]);
+    const response = await fetch(apiBase + "/api/v1/jobs", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer " + session.access_token },
+      body: JSON.stringify(input),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const message = (payload as { message?: string; error?: string }).message || (payload as { error?: string }).error;
+      throw new Error(message || "Unable to enqueue research job (" + response.status + ")");
+    }
+    return (payload as { data: { id: string; status: string } }).data;
+  }
   const result = await rpc<{ data: { id: string; status: string } }>("urania_create_collection_job", {
     p_job_type: input.job_type,
     p_provider_key: input.provider_key || null,
