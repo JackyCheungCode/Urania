@@ -1,5 +1,5 @@
 -- Urania connector catalog seed.
--- These rows are inventory only. No API is represented as authorized or configured.
+-- Third-party data API rows are inventory only. Supabase/Cloudflare reflect existing infrastructure access, not approval for third-party data collection.
 insert into integrations.data_sources
   (provider_key, display_name, category, status, authorization_status, regions, capabilities, license_scope)
 values
