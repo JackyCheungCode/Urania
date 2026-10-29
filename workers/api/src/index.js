@@ -9,6 +9,7 @@ const ALLOWED_RPCS = {
   urania_create_collection_job: { method: "POST", roles: ["admin", "researcher"] },
   urania_list_collection_jobs: { method: "POST", roles: ["admin", "researcher"] },
   urania_set_provider_state: { method: "POST", roles: ["admin"] },
+  urania_set_provider_credential: { method: "POST", roles: ["admin"] },
   urania_list_contacts: { method: "POST", roles: ["admin", "sales"] },
   urania_create_contact: { method: "POST", roles: ["admin", "sales"] },
   urania_list_opportunities: { method: "POST", roles: ["admin", "sales"] },
