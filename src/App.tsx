@@ -115,12 +115,18 @@ export default function App() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
   }
+  async function logout() {
+    if (!supabase) { setSignedIn(false); return; }
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+    setSignedIn(false);
+  }
   if (!authReady) return <div className="auth-screen"><div className="auth-loading">正在连接 Urania 安全登录…</div></div>;
   if (!signedIn) return <LoginScreen onLogin={login} />;
-  return <Dashboard />;
+  return <Dashboard onSignOut={logout} />;
 }
 
-function Dashboard() {
+function Dashboard({ onSignOut }: { onSignOut: () => Promise<void> }) {
   const [page, setPage] = useState<Page>("overview");
   const [query, setQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -169,9 +175,9 @@ function Dashboard() {
       </nav>
       <div className="sidebar-spacer" />
       <div className="sidebar-status"><span className="status-dot" /><div><strong>系统运行正常</strong><span>数据源状态需要配置</span></div><MoreHorizontal size={16} /></div>
-      <div className="profile">
-        <div className="profile-avatar">Y</div><div className="profile-copy"><strong>Workspace Admin</strong><span>管理员</span></div><MoreHorizontal size={17} />
-      </div>
+      <button className="profile profile-signout" type="button" onClick={() => { void onSignOut().catch(() => { setNotice("退出登录失败，请检查网络后重试。"); }); }} aria-label="退出 Urania 工作区">
+        <div className="profile-avatar">U</div><div className="profile-copy"><strong>退出工作区</strong><span>安全退出当前账号</span></div><ArrowRight size={17} />
+      </button>
     </aside>
 
     <main className="main-area">
