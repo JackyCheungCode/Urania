@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   Activity, ArrowDownRight, ArrowRight, ArrowUpRight, BarChart3, Bell, Boxes,
   Building2, Check, ChevronDown, CircleHelp, Clock3, Command, Compass, Database,
@@ -53,7 +53,7 @@ const pageMeta: Record<Page, { title: string; eyebrow: string; description: stri
   settings: { title: "系统设置", eyebrow: "WORKSPACE ADMIN", description: "管理工作区、安全策略、权限与审计。" },
 };
 
-function Badge({ children, tone = "neutral" }: { children: React.ReactNode; tone?: "neutral" | "green" | "amber" | "blue" | "purple" }) {
+function Badge({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "green" | "amber" | "blue" | "purple" }) {
   return <span className={`badge badge--${tone}`}>{children}</span>;
 }
 function SectionTitle({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
