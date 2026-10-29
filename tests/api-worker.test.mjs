@@ -143,3 +143,28 @@ test("RPC returns a safe actionable message for backend permission errors", asyn
   assert.equal(JSON.stringify(body).includes("internal"), false);
   assert.equal(calls, 2);
 });
+
+
+test("provider credential RPC is admin-only and does not echo credential values", async (t) => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url, init = {}) => {
+    calls.push({url:String(url),body:init.body});
+    if (String(url).endsWith("/auth/v1/user")) {
+      return new Response(JSON.stringify({ id:"user-admin", app_metadata:{urania_role:"admin"} }), {status:200});
+    }
+    return new Response(JSON.stringify({data:{provider_key:"serpapi",credential_configured:true,status:"configured"}}), {status:200});
+  };
+  t.after(() => { globalThis.fetch = originalFetch; });
+  const response = await handle(new Request("https://api.example.com/api/v1/rpc/urania_set_provider_credential", {
+    method:"POST",
+    headers:{authorization:"Bearer valid-test-token","content-type":"application/json"},
+    body:JSON.stringify({p_provider_key:"serpapi",p_api_key:"test-provider-secret-123"}),
+  }), baseEnv);
+  assert.equal(response.status,200);
+  const body=await response.json();
+  assert.equal(body.data.credential_configured,true);
+  assert.equal(JSON.stringify(body).includes("test-provider-secret-123"),false);
+  assert.equal(calls.length,2);
+  assert.match(calls[1].body,/test-provider-secret-123/);
+});
