@@ -4,6 +4,7 @@ const ALLOWED_RPCS = {
   urania_list_leads: { method: "POST", roles: ["admin", "sales", "researcher"] },
   urania_create_lead: { method: "POST", roles: ["admin", "sales"] },
   urania_list_products: { method: "POST", roles: ["admin", "researcher", "sales"] },
+  urania_create_product: { method: "POST", roles: ["admin", "researcher"] },
   urania_list_data_sources: { method: "POST", roles: ["admin", "researcher"] },
   urania_create_collection_job: { method: "POST", roles: ["admin", "researcher"] },
   urania_set_provider_state: { method: "POST", roles: ["admin"] }
@@ -55,7 +56,7 @@ async function handle(request, env) {
     return json({
       service: "urania-api",
       version: "0.2.0",
-      endpoints: ["GET /health", "GET /api/v1/status", "POST /api/v1/rpc/:allowlisted_function"],
+      endpoints: ["GET /health", "GET /api/v1/status", "POST /api/v1/rpc/:allowlisted_function", "POST /api/v1/jobs"],
       auth: "Supabase access token required for RPC calls",
       dataProviders: "catalog only; third-party providers are not configured by this API"
     }, 200, headers);
