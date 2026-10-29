@@ -49,7 +49,7 @@ function corsHeaders(origin) {
   } : {};
 }
 
-async function handle(request, env) {
+export async function handle(request, env) {
   const url = new URL(request.url);
   const cors = allowedOrigin(request, env);
   if (!cors.allowed) return json({ error: "origin_not_allowed" }, 403, { vary: "Origin" });
@@ -185,11 +185,13 @@ async function handle(request, env) {
   return json(responseBody, rpcResponse.status, headers);
 }
 
-addEventListener("fetch", event => {
-  event.respondWith(handle(event.request, {
-    SUPABASE_URL: typeof SUPABASE_URL === "undefined" ? "" : SUPABASE_URL,
-    SUPABASE_PUBLISHABLE_KEY: typeof SUPABASE_PUBLISHABLE_KEY === "undefined" ? "" : SUPABASE_PUBLISHABLE_KEY,
-    ALLOWED_ORIGINS: typeof ALLOWED_ORIGINS === "undefined" ? "" : ALLOWED_ORIGINS,
-    URANIA_JOBS: typeof URANIA_JOBS === "undefined" ? null : URANIA_JOBS
-  }));
-});
+if (typeof addEventListener === "function") {
+  addEventListener("fetch", event => {
+    event.respondWith(handle(event.request, {
+      SUPABASE_URL: typeof SUPABASE_URL === "undefined" ? "" : SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY: typeof SUPABASE_PUBLISHABLE_KEY === "undefined" ? "" : SUPABASE_PUBLISHABLE_KEY,
+      ALLOWED_ORIGINS: typeof ALLOWED_ORIGINS === "undefined" ? "" : ALLOWED_ORIGINS,
+      URANIA_JOBS: typeof URANIA_JOBS === "undefined" ? null : URANIA_JOBS
+    }));
+  });
+}
