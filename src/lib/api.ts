@@ -180,3 +180,70 @@ export async function updateProviderState(input: {
   );
   return result.data;
 }
+
+export type ContactRecord = {
+  id: string;
+  account_id: string;
+  company_name: string;
+  full_name: string;
+  job_title: string | null;
+  work_email: string | null;
+  phone: string | null;
+  profile_url: string | null;
+  country_code: string | null;
+  verification_status: string;
+  lawful_basis: string | null;
+  consent_status: string;
+  do_not_contact: boolean;
+  last_verified_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type OpportunityRecord = {
+  id: string;
+  account_id: string;
+  company_name: string;
+  name: string;
+  stage: string;
+  amount: number | null;
+  currency: string;
+  probability: number | null;
+  expected_close_date: string | null;
+  owner_id: string | null;
+  lost_reason: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export async function listContacts(search = ""): Promise<ContactRecord[]> {
+  const result = await rpc<{data?:ContactRecord[]}>("urania_list_contacts",{p_search:search||null,p_limit:100},["admin","sales"]);
+  return result.data ?? [];
+}
+
+export async function createContact(input: {
+  account_id: string; full_name: string; job_title?: string; work_email?: string; phone?: string;
+  profile_url?: string; country_code?: string; lawful_basis: string; do_not_contact?: boolean;
+}): Promise<Partial<ContactRecord>> {
+  const result = await rpc<{data:Partial<ContactRecord>}>("urania_create_contact",{
+    p_account_id:input.account_id,p_full_name:input.full_name,p_job_title:input.job_title||null,
+    p_work_email:input.work_email||null,p_phone:input.phone||null,p_profile_url:input.profile_url||null,
+    p_country_code:input.country_code||null,p_lawful_basis:input.lawful_basis,p_do_not_contact:input.do_not_contact||false
+  },["admin","sales"]);
+  return result.data;
+}
+
+export async function listOpportunities(search = ""): Promise<OpportunityRecord[]> {
+  const result = await rpc<{data?:OpportunityRecord[]}>("urania_list_opportunities",{p_search:search||null,p_limit:100},["admin","sales"]);
+  return result.data ?? [];
+}
+
+export async function createOpportunity(input: {
+  account_id:string; name:string; amount?:number|null; currency?:string; probability?:number; expected_close_date?:string|null; stage?:string;
+}): Promise<Partial<OpportunityRecord>> {
+  const result = await rpc<{data:Partial<OpportunityRecord>}>("urania_create_opportunity",{
+    p_account_id:input.account_id,p_name:input.name,p_amount:input.amount??null,p_currency:input.currency||"USD",
+    p_probability:input.probability??0.1,p_expected_close_date:input.expected_close_date||null,p_stage:input.stage||"qualification"
+  },["admin","sales"]);
+  return result.data;
+}
