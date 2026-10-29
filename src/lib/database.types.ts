@@ -51,6 +51,15 @@ export type Database = {
         }
         Returns: Json
       }
+      urania_create_product: {
+        Args: {
+          p_brand?: string
+          p_canonical_name: string
+          p_category_path?: string[]
+          p_description?: string
+        }
+        Returns: Json
+      }
       urania_list_accounts: {
         Args: { p_limit?: number; p_search?: string }
         Returns: Json
@@ -69,6 +78,36 @@ export type Database = {
         Returns: string
       }
       urania_role_from_jwt: { Args: never; Returns: string }
+      urania_worker_claim_job: {
+        Args: { p_internal_token: string; p_job_id: string }
+        Returns: Json
+      }
+      urania_worker_get_provider: {
+        Args: { p_internal_token: string; p_provider_key: string }
+        Returns: Json
+      }
+      urania_worker_store_search_results: {
+        Args: {
+          p_internal_token: string
+          p_job_id: string
+          p_latency_ms?: number
+          p_market_country: string
+          p_provider_key: string
+          p_query: string
+          p_results: Json
+        }
+        Returns: Json
+      }
+      urania_worker_update_job: {
+        Args: {
+          p_error_code?: string
+          p_error_message?: string
+          p_internal_token: string
+          p_job_id: string
+          p_status: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
