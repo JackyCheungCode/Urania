@@ -371,6 +371,12 @@ export async function listApprovals():Promise<ApprovalRecord[]> {
   const result=await rpc<{data?:ApprovalRecord[]}>("urania_list_approvals",{p_limit:100},["admin","sales"]);
   return result.data??[];
 }
+export async function createEmailApproval(input:{contact_id:string;subject:string;body:string}):Promise<{id:string;subject_id:string;status:string;requested_at:string}> {
+  const result=await rpc<{data:{id:string;subject_id:string;status:string;requested_at:string}}>(
+    "urania_create_email_approval",{p_contact_id:input.contact_id,p_subject:input.subject,p_body:input.body},["admin","sales"]
+  );
+  return result.data;
+}
 export async function reviewApproval(id:string,decision:"approved"|"rejected",note?:string):Promise<Pick<ApprovalRecord,"id"|"status"|"reviewed_by"|"reviewed_at">> {
   const result=await rpc<{data:Pick<ApprovalRecord,"id"|"status"|"reviewed_by"|"reviewed_at">}>(
     "urania_review_approval",{p_approval_id:id,p_decision:decision,p_review_note:note||null},["admin","sales"]
