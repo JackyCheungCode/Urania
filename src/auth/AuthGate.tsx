@@ -5,6 +5,8 @@ import { isSupabaseConfigured, supabase } from "../lib/supabase";
 
 export default function AuthGate({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
+  const [role, setRole] = useState<string | null>(null);
+  const [roleLoading, setRoleLoading] = useState(false);
   const [checking, setChecking] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,6 +29,19 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     });
     return () => { alive = false; subscription.unsubscribe(); };
   }, []);
+
+  useEffect(() => {
+    if (!supabase || !session) { setRole(null); setRoleLoading(false); return; }
+    let alive = true;
+    setRoleLoading(true);
+    supabase.auth.getUser().then(({ data, error: userError }) => {
+      if (!alive) return;
+      if (userError) setError(userError.message);
+      setRole((data.user?.app_metadata?.urania_role as string | undefined) ?? null);
+      setRoleLoading(false);
+    });
+    return () => { alive = false; };
+  }, [session]);
 
   async function signIn(event: FormEvent) {
     event.preventDefault();
@@ -66,5 +81,13 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     <button className="auth-help" onClick={()=>setInfo("请联系 Urania 工作区管理员创建账号并分配角色。")}>需要访问权限？</button>
   </section></div>;
 
+  if (roleLoading) return <div className="auth-shell"><div className="auth-card auth-loading">正在验证工作区角色…</div></div>;
+  if (!role || !["admin", "researcher", "sales"].includes(role)) return <div className="auth-shell"><section className="auth-card">
+    <div className="auth-brand"><span className="brand-mark"><Sparkles size={20}/></span><div><strong>urania<span>.</span></strong><small>GLOBAL INTELLIGENCE</small></div></div>
+    <div className="auth-symbol"><ShieldCheck size={24}/></div><p className="eyebrow">ACCESS CONTROL</p><h1>等待工作区授权</h1>
+    <p className="auth-description">当前账号已登录，但尚未获得 Urania 的有效工作区角色。为保护 CRM 和数据源配置，系统不会加载业务页面。</p>
+    <div className="auth-security"><ShieldCheck size={16}/>请管理员通过 Supabase Auth 管理接口设置 <code>app_metadata.urania_role</code> 为 admin、researcher 或 sales。</div>
+    <button className="button button--secondary auth-submit" onClick={signOut}>安全退出</button>
+  </section></div>;
   return <>{children}<button className="auth-session-control" onClick={signOut} title="安全退出">已登录 · 退出</button></>;
 }
