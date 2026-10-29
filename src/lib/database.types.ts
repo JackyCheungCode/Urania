@@ -111,6 +111,17 @@ export type Database = {
         }
         Returns: Json
       }
+      urania_create_product_score: {
+        Args: {
+          p_component_scores: Json
+          p_confidence?: number
+          p_notes?: string
+          p_product_id: string
+          p_risk_flags?: string[]
+          p_score_version?: string
+        }
+        Returns: Json
+      }
       urania_create_profit_scenario: {
         Args: {
           p_assumptions?: string
