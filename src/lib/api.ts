@@ -304,3 +304,22 @@ export async function createOrder(input:{account_id:string;currency?:string;tota
   },["admin","sales"]);
   return result.data;
 }
+
+export type ProfitScenarioRecord = {
+  id:string;
+  scenario_type:"b2c"|"b2b";
+  currency:string;
+  input_values:Record<string,number>;
+  output_values:Record<string,number|null>;
+  created_at:string;
+};
+export async function createProfitScenario(input:{
+  scenario_type:"b2c"|"b2b";currency:string;inputs:Record<string,number>;product_id?:string|null;assumptions?:string;
+}):Promise<{id:string;scenario_type:"b2c"|"b2b";currency:string;input_values:Record<string,number>;output_values:Record<string,number|null>;created_at:string}> {
+  const result=await rpc<{data:{id:string;scenario_type:"b2c"|"b2b";currency:string;input_values:Record<string,number>;output_values:Record<string,number|null>;created_at:string}}>(
+    "urania_create_profit_scenario",
+    {p_scenario_type:input.scenario_type,p_currency:input.currency,p_inputs:input.inputs,p_product_id:input.product_id||null,p_assumptions:input.assumptions||null},
+    ["admin","researcher","sales"]
+  );
+  return result.data;
+}
