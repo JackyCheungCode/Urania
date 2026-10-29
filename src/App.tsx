@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { supabase } from "./lib/supabase";
-import { createAccount, listAccounts, listLeads, type AccountRecord, type LeadRecord } from "./lib/api";
+import { createAccount, listDataSources, type AccountRecord, type LeadRecord } from "./lib/api";
 import {
   Activity, ArrowRight, ArrowUpRight, BarChart3, Bell, Boxes,
   Building2, Check, ChevronDown, CircleHelp, Clock3, Command, Compass, Database,
@@ -303,12 +303,28 @@ function Automation({ approved, setApproved, toast }: { approved: string[]; setA
 
 function Integrations({ toast }: { toast: (s: string) => void }) {
   const [category, setCategory] = useState("全部类别");
-  const categories = ["全部类别","搜索与 SERP","搜索与趋势","电商商品数据","市场趋势","数据库"];
-  const filtered = connectors.filter((x) => category==="全部类别" || x.category===category);
+  const [liveConnectors, setLiveConnectors] = useState<Array<{provider_key:string;display_name:string;category:string;status:string;authorization_status:string;regions:string[];capabilities:string[]}>>([]);
+  const [loading, setLoading] = useState(Boolean(supabase));
+  const [error, setError] = useState("");
+  const isLive = Boolean(supabase);
+  useEffect(() => {
+    if (!supabase) return;
+    listDataSources().then((rows) => setLiveConnectors(rows as typeof liveConnectors))
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : "无法读取连接器目录。"))
+      .finally(() => setLoading(false));
+  }, []);
+  const categories = ["全部类别","search","trends","marketplace","company_data","contact_data","supplier_data","ai","database","other"];
+  const filteredLive = liveConnectors.filter((x) => category==="全部类别" || x.category===category);
+  const filteredDemo = connectors.filter((x) => category==="全部类别" || x.category===category);
+  const stateLabel = (s:string) => ({planned:"待配置",pending_authorization:"待授权",configured:"已配置",active:"已启用",paused:"已暂停",disabled:"已禁用",error:"异常"}[s] || s);
+  const authLabel = (s:string) => ({unknown:"权限待核验",pending:"申请中",approved:"已授权",restricted:"受限",rejected:"未通过"}[s] || s);
   return <>
-    <div className="integration-banner"><div className="integration-banner-icon"><Database size={21}/></div><div><h2>统一连接器目录</h2><p>所有数据源通过统一接口接入。密钥只存放在服务端，不写入前端代码或仓库。</p></div><Badge tone="blue">6 个连接器规划</Badge></div>
-    <div className="integration-summary"><MetricCard label="连接器目录" value="6" change="可扩展" icon={Database} tone="purple" note="首期清单" /><MetricCard label="已连接" value="1" change="Supabase" icon={Check} tone="green" note="资源已发现" /><MetricCard label="待配置" value="3" change="需要 API 凭证" icon={Settings2} tone="orange" note="SerpApi 等" /><MetricCard label="本月调用成本" value="—" change="未接入计量" icon={BarChart3} tone="blue" note="不会虚报费用" /></div>
-    <section className="panel"><div className="integration-toolbar"><SectionTitle title="数据源连接器" /><select value={category} onChange={(e)=>setCategory(e.target.value)} aria-label="筛选连接器类别">{categories.map(c=><option key={c}>{c}</option>)}</select></div><div className="connector-list">{filtered.map((connector) => <div className="connector-row" key={connector.name}><span className={`connector-logo connector-logo--${connector.tone}`}>{connector.initials}</span><div className="connector-copy"><div><strong>{connector.name}</strong><Badge>{connector.category}</Badge></div><p>{connector.detail}</p></div><Badge tone={connector.state==="已连接"?"green":connector.state==="待授权"?"amber":"neutral"}>{connector.state}</Badge><button className="button button--secondary button--small" onClick={() => toast(connector.name==="Supabase"?"已发现 Urania Supabase 项目；业务 schema 尚待实施":`${connector.name} 需先确认账户授权、API 权限、价格与数据条款`)}>{connector.state==="已连接"?"查看状态":"配置连接"}<ArrowRight size={13}/></button></div>)}</div><div className="panel-note"><ShieldCheck size={14}/>连接器状态为当前项目规划状态，不代表已完成第三方授权。配置页面将在后端密钥管理和权限校验完成后启用。</div></section>
+    <div className="integration-banner"><div className="integration-banner-icon"><Database size={21}/></div><div><h2>统一连接器目录</h2><p>所有数据源通过统一接口接入。密钥只存放在服务端，不写入前端代码或仓库。</p></div><Badge tone="blue">{isLive?liveConnectors.length:connectors.length} 个目录条目</Badge></div>
+    <div className="integration-summary"><MetricCard label="连接器目录" value={String(isLive?liveConnectors.length:connectors.length)} change="可扩展" icon={Database} tone="purple" note={isLive?"数据库记录":"演示清单"} /><MetricCard label="已启用" value={String(isLive?liveConnectors.filter(x=>x.status==="active").length:1)} change="真实连接需验证" icon={Check} tone="green" note="仅统计 active" /><MetricCard label="待配置 / 授权" value={String(isLive?liveConnectors.filter(x=>x.status==="planned"||x.authorization_status!=="approved").length:4)} change="需要凭证与许可" icon={Settings2} tone="orange" note="第三方数据源" /><MetricCard label="本月调用成本" value="—" change="账单未接入" icon={BarChart3} tone="blue" note="不会虚报费用" /></div>
+    <section className="panel"><div className="integration-toolbar"><SectionTitle title={isLive?"数据源注册表":"数据源连接器"} /><select value={category} onChange={(e)=>setCategory(e.target.value)} aria-label="筛选连接器类别">{categories.map(c=><option key={c} value={c}>{c==="全部类别"?"全部类别":c}</option>)}</select></div>
+      {error&&<div className="inline-error"><ShieldCheck size={15}/><span>{error}</span></div>}
+      {loading?<div className="empty-state"><Activity size={24}/><strong>正在读取连接器目录…</strong></div>:<div className="connector-list">{isLive?filteredLive.map((x) => <div className="connector-row" key={x.provider_key}><span className="connector-logo connector-logo--blue">{x.display_name.slice(0,2)}</span><div className="connector-copy"><div><strong>{x.display_name}</strong><Badge>{x.category}</Badge></div><p>{(x.capabilities||[]).join(" · ") || "能力范围待定义"}{x.regions?.length ? " · " + x.regions.join(", ") : ""}</p><small className="table-secondary">授权：{authLabel(x.authorization_status)}</small></div><Badge tone={x.status==="active"||x.status==="configured"?"green":x.status==="error"?"amber":"neutral"}>{stateLabel(x.status)}</Badge><button className="button button--secondary button--small" onClick={() => toast(x.display_name+"：请在服务端密钥管理中配置凭证，并先核验 API 许可。")}>管理<ArrowRight size={13}/></button></div>):filteredDemo.map((x) => <div className={"connector-row"} key={x.name}><span className={"connector-logo connector-logo--"+x.tone}>{x.initials}</span><div className="connector-copy"><div><strong>{x.name}</strong><Badge>{x.category}</Badge></div><p>{x.detail}</p></div><Badge tone={x.state==="已连接"?"green":x.state==="待授权"?"amber":"neutral"}>{x.state}</Badge><button className="button button--secondary button--small" onClick={() => toast(x.name+" 需先确认账户授权、API 权限、价格与数据条款")}>查看状态<ArrowRight size={13}/></button></div>)}</div>}
+      <div className="panel-note"><ShieldCheck size={14}/>连接器目录不代表 API 已接通。第三方来源必须先核验权限、数据用途、价格、保留周期和商业使用范围；真实调用费用会记录在 usage_events。</div></section>
     <section className="panel"><SectionTitle title="连接器接入原则" /><div className="evidence-grid"><div><span className="evidence-mark evidence-mark--green">01</span><strong>许可先行</strong><p>确认 API 权限、数据用途、保留周期和商业使用范围。</p></div><div><span className="evidence-mark evidence-mark--blue">02</span><strong>统一标准</strong><p>映射为标准记录，并保留供应商原始响应和来源时间。</p></div><div><span className="evidence-mark evidence-mark--amber">03</span><strong>成本可控</strong><p>设置缓存、速率限制、预算上限和失败重试策略。</p></div></div></section>
   </>;
 }
