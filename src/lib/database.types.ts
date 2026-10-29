@@ -41,6 +41,20 @@ export type Database = {
         }
         Returns: Json
       }
+      urania_create_contact: {
+        Args: {
+          p_account_id: string
+          p_country_code?: string
+          p_do_not_contact?: boolean
+          p_full_name: string
+          p_job_title?: string
+          p_lawful_basis?: string
+          p_phone?: string
+          p_profile_url?: string
+          p_work_email?: string
+        }
+        Returns: Json
+      }
       urania_create_lead: {
         Args: {
           p_account_id?: string
@@ -48,6 +62,18 @@ export type Database = {
           p_lead_name: string
           p_next_action_at?: string
           p_source_url?: string
+        }
+        Returns: Json
+      }
+      urania_create_opportunity: {
+        Args: {
+          p_account_id: string
+          p_amount?: number
+          p_currency?: string
+          p_expected_close_date?: string
+          p_name: string
+          p_probability?: number
+          p_stage?: string
         }
         Returns: Json
       }
@@ -64,8 +90,16 @@ export type Database = {
         Args: { p_limit?: number; p_search?: string }
         Returns: Json
       }
+      urania_list_contacts: {
+        Args: { p_limit?: number; p_search?: string }
+        Returns: Json
+      }
       urania_list_data_sources: { Args: never; Returns: Json }
       urania_list_leads: {
+        Args: { p_limit?: number; p_search?: string }
+        Returns: Json
+      }
+      urania_list_opportunities: {
         Args: { p_limit?: number; p_search?: string }
         Returns: Json
       }
@@ -78,6 +112,16 @@ export type Database = {
         Returns: string
       }
       urania_role_from_jwt: { Args: never; Returns: string }
+      urania_set_provider_state: {
+        Args: {
+          p_authorization_status: string
+          p_license_scope?: string
+          p_provider_key: string
+          p_retention_days?: number
+          p_status: string
+        }
+        Returns: Json
+      }
       urania_worker_claim_job: {
         Args: { p_internal_token: string; p_job_id: string }
         Returns: Json
