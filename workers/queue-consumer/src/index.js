@@ -64,7 +64,7 @@ async function processMessage(message, env) {
   try {
     provider = await rpc(env,"urania_worker_get_provider",{p_provider_key:providerKey});
   } catch (e) {
-    await retryOrFail(message,env,job,"provider_lookup_failed",String(e));
+    await retryOrFail(message,env,job,"provider_lookup_failed","Provider lookup failed; inspect worker logs for details.");
     return;
   }
   if (provider?.status !== "active" || provider?.authorization_status !== "approved") {
@@ -116,7 +116,7 @@ async function processMessage(message, env) {
     }
     const payload = await response.json();
     if (!response.ok || payload.error) {
-      await failAndAck(message,env,"provider_request_error",String(payload.error || "SerpApi request failed").slice(0,500));
+      await failAndAck(message,env,"provider_request_error","Search provider rejected the request; inspect worker logs for details.");
       return;
     }
     const results = Array.isArray(payload.organic_results) ? payload.organic_results.slice(0,10).map((r) => ({
@@ -136,7 +136,7 @@ async function processMessage(message, env) {
     });
     message.ack();
   } catch (e) {
-    await retryOrFail(message,env,job,"provider_or_storage_error",String(e).slice(0,500));
+    await retryOrFail(message,env,job,"provider_or_storage_error","Provider request or result storage failed; inspect worker logs for details.");
   }
 }
 
