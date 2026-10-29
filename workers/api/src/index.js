@@ -217,13 +217,4 @@ export async function handle(request, env) {
   return json(responseBody, rpcResponse.status, headers);
 }
 
-if (typeof addEventListener === "function") {
-  addEventListener("fetch", event => {
-    event.respondWith(handle(event.request, {
-      SUPABASE_URL: typeof SUPABASE_URL === "undefined" ? "" : SUPABASE_URL,
-      SUPABASE_PUBLISHABLE_KEY: typeof SUPABASE_PUBLISHABLE_KEY === "undefined" ? "" : SUPABASE_PUBLISHABLE_KEY,
-      ALLOWED_ORIGINS: typeof ALLOWED_ORIGINS === "undefined" ? "" : ALLOWED_ORIGINS,
-      URANIA_JOBS: typeof URANIA_JOBS === "undefined" ? null : URANIA_JOBS
-    }));
-  });
-}
+export default { fetch: handle };
