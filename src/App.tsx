@@ -3,7 +3,7 @@ import { supabase } from "./lib/supabase";
 import CRMExtras from "./components/CRMExtras";
 import ProfitCalculator from "./components/ProfitCalculator";
 import ProductScoringPanel from "./components/ProductScoringPanel";
-import { createAccount, createCollectionJob, createContact, createLead, createOpportunity, createProduct, listAccounts, listContacts, listDataSources, listLeads, listOpportunities, listProducts, updateProviderState, type AccountRecord, type ContactRecord, type LeadRecord, type OpportunityRecord, type ProductRecord } from "./lib/api";
+import { createAccount, createCollectionJob, createContact, createLead, createOpportunity, createProduct, listAccounts, listCollectionJobs, listContacts, listDataSources, listLeads, listOpportunities, listProducts, updateProviderState, type CollectionJobRecord, type AccountRecord, type ContactRecord, type LeadRecord, type OpportunityRecord, type ProductRecord } from "./lib/api";
 import {
   Activity, ArrowRight, ArrowUpRight, BarChart3, Bell, Boxes,
   Building2, Check, ChevronDown, CircleHelp, Clock3, Command, Compass, Database,
@@ -260,7 +260,29 @@ function Research({ filter, setFilter, data, query, toast }: { filter: string; s
   const [jobQuery, setJobQuery] = useState("");
   const [jobBusy, setJobBusy] = useState(false);
   const [jobMessage, setJobMessage] = useState("");
+  const [jobs, setJobs] = useState<CollectionJobRecord[]>([]);
+  const [jobsLoading, setJobsLoading] = useState(Boolean(supabase));
+  const [jobsError, setJobsError] = useState("");
   const isLive = Boolean(supabase);
+
+  async function reloadJobs() {
+    if (!supabase) return;
+    try {
+      setJobsError("");
+      const rows = await listCollectionJobs(20);
+      setJobs(rows);
+    } catch (e) {
+      setJobsError(e instanceof Error ? e.message : "读取研究任务失败。");
+    } finally {
+      setJobsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void reloadJobs();
+    const timer = window.setInterval(() => { void reloadJobs(); }, 15000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   async function reloadProducts() {
     if (!supabase) return;
@@ -316,6 +338,18 @@ function Research({ filter, setFilter, data, query, toast }: { filter: string; s
     <div className="metric-grid metric-grid--research"><MetricCard label="产品记录" value={String(isLive?products.length:12)} change={isLive?"真实记录":"演示数据"} icon={Boxes} tone="purple" note="候选产品库" /><MetricCard label="有来源证据" value={isLive?"0":"8"} change="等待数据采集" icon={Activity} tone="blue" note={isLive?"证据层尚未接入":"样例数据"}/><MetricCard label="已评分产品" value={isLive?"0":"6"} change="确定性评分引擎待接入" icon={BarChart3} tone="green" note="不虚报市场结论"/><MetricCard label="数据缺口" value={isLive?"全部":"14"} change="待补充证据" icon={FileSearch} tone="orange" note="来源授权后更新"/></div>
     {productFormOpen&&<form className="account-form" onSubmit={saveProduct}><div className="account-form-heading"><strong>新增研究产品</strong><span>当前只建立产品主档，不会自动推断销量或市场需求。</span></div><div className="account-form-grid"><label>产品名称 *<input required minLength={2} maxLength={240} value={productName} onChange={e=>setProductName(e.target.value)} placeholder="Portable power station accessories"/></label><label>品牌<input value={productBrand} onChange={e=>setProductBrand(e.target.value)} placeholder="品牌（可选）"/></label><label>分类路径<input value={productCategory} onChange={e=>setProductCategory(e.target.value)} placeholder="户外 / 能源 / 配件"/></label></div>{error&&<p className="auth-error" role="alert">{error}</p>}<div className="account-form-actions"><button type="button" className="button button--secondary" onClick={()=>setProductFormOpen(false)}>取消</button><button type="submit" className="button button--primary" disabled={saving}>{saving?"保存中…":"保存产品"}</button></div></form>}
     {jobMessage&&<div className="inline-success"><Check size={15}/><span>{jobMessage}</span></div>}
+    {isLive&&<section className="panel research-jobs-panel">
+      <SectionTitle title="研究任务与来源证据" action="刷新任务" onAction={() => { void reloadJobs(); }}/>
+      <div className="panel-note"><Activity size={14}/>每 15 秒刷新一次任务状态。只有已获授权的数据源才会执行采集；失败任务会显示错误码。</div>
+      {jobsError&&<div className="inline-error" role="alert"><ShieldCheck size={15}/><span>{jobsError}</span><button onClick={() => void reloadJobs()}>重试</button></div>}
+      {jobsLoading?<div className="empty-state"><Activity size={22}/><strong>正在读取研究任务…</strong></div>:jobs.length===0?<div className="empty-state"><FileSearch size={24}/><strong>还没有研究任务</strong><span>输入关键词并创建研究任务后，任务状态和来源链接会显示在这里。</span></div>:
+        <div className="research-job-list">{jobs.map(job=><article className="research-job" key={job.id}>
+          <div className="research-job-heading"><div><strong>{job.query||job.job_type}</strong><small>{job.provider_key||"等待分配数据源"} · {job.market_country||"全球"} · {new Date(job.created_at).toLocaleString()}</small></div><Badge tone={job.status==="succeeded"?"green":job.status==="failed"||job.status==="dead_letter"?"red":job.status==="running"?"blue":"amber"}>{job.status}</Badge></div>
+          <div className="research-job-meta"><span>{job.result_count} 条结果</span><span>尝试 {job.attempts}/{job.max_attempts}</span><span>{job.finished_at?"完成于 "+new Date(job.finished_at).toLocaleString():"尚未完成"}</span></div>
+          {job.error_message&&<p className="research-job-error">{job.error_code||"job_error"}：{job.error_message}</p>}
+          {job.results.length>0&&<div className="research-job-results">{job.results.slice(0,5).map((result,index)=><div className="research-job-result" key={job.id+"-"+result.rank}><span className="research-result-rank">{result.rank||index+1}</span><div><strong>{result.url?<a href={result.url} target="_blank" rel="noreferrer">{result.title}</a>:result.title}</strong>{result.snippet&&<p>{result.snippet}</p>}<small>{result.displayed_url||result.url||"无来源 URL"}</small></div></div>)}</div>}
+        </article>)}</div>}
+    </section>}
     {error&&!productFormOpen&&<div className="inline-error" role="alert"><ShieldCheck size={15}/><span>{error}</span><button onClick={()=>isLive?void reloadProducts():setError("")}>重试</button></div>}
     <section className="panel"><SectionTitle title={isLive?"产品主档与研究状态":"产品机会样例"} action={isLive?"刷新":"评分说明"} onAction={() => isLive?void reloadProducts():toast("正式评分必须记录模型版本、输入证据和风险标记。")}/>{loading?<div className="empty-state"><Activity size={24}/><strong>正在读取产品记录…</strong></div>:<div className="table-wrap"><table><thead><tr><th>产品</th><th>分类 / 品牌</th><th>研究状态</th><th>市场评分</th><th>证据情况</th><th /></tr></thead><tbody>{isLive?liveRows.map(p=><tr key={p.id}><td><div className="product-name"><span className="product-symbol"><Boxes size={15}/></span><span><strong>{p.canonical_name}</strong><small>{p.description||"尚无产品描述"}</small></span></div></td><td>{p.category_path.join(" / ")||"未分类"}{p.brand?" · "+p.brand:""}</td><td><Badge>{p.status}</Badge></td><td>未评分</td><td><Badge tone="amber">等待证据</Badge></td><td><button className="icon-button table-more" onClick={()=>toast("产品详情、证据时间线与评分将在下一阶段接入。")} aria-label="产品详情"><ArrowRight size={15}/></button></td></tr>):demoRows.map((p)=><tr key={p.name}><td><div className="product-name"><span className="product-symbol"><Boxes size={15}/></span><span><strong>{p.name}</strong><small>{p.category}</small></span></div></td><td>{p.market}</td><td><Badge tone={p.status==="值得验证"?"green":"amber"}>{p.status}</Badge></td><td>{p.score} / 100</td><td><Badge tone="amber">演示证据</Badge></td><td><button className="icon-button table-more" onClick={()=>toast(p.name+"：演示数据，不代表已验证市场机会。")} aria-label="产品详情"><ArrowRight size={15}/></button></td></tr>)}</tbody></table>{(isLive?liveRows.length:demoRows.length)===0&&<div className="empty-state"><FileSearch size={28}/><strong>还没有匹配的产品记录</strong><span>新增产品主档，或创建研究任务开始收集证据。</span></div>}</div>}<div className="panel-note"><ShieldCheck size={14}/>{isLive?"真实数据库已连接；市场需求、销量和利润指标在证据源接入前不会显示为已验证。":"演示数据仅用于预览，不代表真实市场、销售额或利润。"}</div></section>
     <ProductScoringPanel products={products} toast={toast}/>
