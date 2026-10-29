@@ -1,5 +1,26 @@
 import { supabase, requireRole } from "./supabase";
 
+const apiBase = (import.meta.env.VITE_API_BASE_URL || "").replace(/\\/$/, "");
+
+async function rpc<T>(name: string, args: Record<string, unknown>, roles: Array<"admin" | "researcher" | "sales">): Promise<T> {
+  const client = supabase;
+  if (!client) throw new Error("Supabase is not configured.");
+  const { session } = await requireRole(roles);
+  if (apiBase) {
+    const response = await fetch(apiBase + "/api/v1/rpc/" + name, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer " + session.access_token },
+      body: JSON.stringify(args),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error((payload as {message?: string; error?: string}).message || (payload as {error?: string}).error || "Urania API request failed (" + response.status + ")");
+    return payload as T;
+  }
+  const { data, error } = await client.rpc(name as never, args as never);
+  if (error) throw error;
+  return data as T;
+}
+
 export type AccountRecord = {
   id: string;
   company_name: string;
