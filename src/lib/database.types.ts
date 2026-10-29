@@ -159,6 +159,10 @@ export type Database = {
         Returns: Json
       }
       urania_list_data_sources: { Args: never; Returns: Json }
+      urania_list_collection_jobs: {
+        Args: { p_limit?: number }
+        Returns: Json
+      }
       urania_list_leads: {
         Args: { p_limit?: number; p_search?: string }
         Returns: Json
