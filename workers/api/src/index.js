@@ -152,7 +152,7 @@ export async function handle(request, env) {
   const match = url.pathname.match(/^\/api\/v1\/rpc\/([a-z_]+)$/);
   if (!match) return json({ error: "not_found" }, 404, headers);
   if (request.method !== "POST") return json({ error: "method_not_allowed" }, 405, headers);
-  if (!env.SUPABASE_URL || !env.SUPABASE_PUBLISHABLE_KEY) return json({ error: "backend_not_configured" }, 503, headers);
+  if (!backendConfigured(env)) return json({ error: "backend_not_configured", message: "Supabase 后端尚未正确配置。请在 Cloudflare Worker 中设置有效的 SUPABASE_URL 和 SUPABASE_PUBLISHABLE_KEY。" }, 503, headers);
 
   const functionName = match[1];
   const policy = ALLOWED_RPCS[functionName];
