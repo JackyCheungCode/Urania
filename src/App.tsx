@@ -138,6 +138,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => Promise<void> }) {
   const [notice, setNotice] = useState("");
   const [filter, setFilter] = useState("全部市场");
   const [approved, setApproved] = useState<string[]>([]);
+  const [createCustomerRequest, setCreateCustomerRequest] = useState(0);
 
   const current = pageMeta[page];
   const filteredOpportunities = useMemo(() => {
@@ -206,13 +207,13 @@ function Dashboard({ onSignOut }: { onSignOut: () => Promise<void> }) {
           <div><div className="eyebrow">{current.eyebrow}</div><h1>{current.title}</h1><p>{current.description}</p></div>
           <div className="heading-actions">
             <button className="button button--secondary" onClick={() => toast("报告导出将在接入真实数据后开放")}><Download size={15} />导出报告</button>
-            <button className="button button--primary" onClick={() => page === "crm" ? toast("新建客户表单将在 CRM 数据模型完成后启用") : page === "integrations" ? toast("连接器设置需要先配置服务端密钥") : go("research")}><Plus size={16} />{page === "crm" ? "新建客户" : page === "integrations" ? "添加连接器" : "新建研究"}</button>
+            <button className="button button--primary" onClick={() => page === "crm" ? setCreateCustomerRequest((value) => value + 1) : page === "integrations" ? toast("连接器设置需要先配置服务端密钥") : go("research")}><Plus size={16} />{page === "crm" ? "新建客户" : page === "integrations" ? "添加连接器" : "新建研究"}</button>
           </div>
         </div>
 
         {page === "overview" && <Overview go={go} toast={toast} />}
         {page === "research" && <Research filter={filter} setFilter={setFilter} data={filteredOpportunities} query={query} toast={toast} />}
-        {page === "crm" && <CRM data={visibleLeads} toast={toast} />}
+        {page === "crm" && <CRM data={visibleLeads} toast={toast} createCustomerRequest={createCustomerRequest} />}
         {page === "intelligence" && <Intelligence toast={toast} />}
         {page === "automation" && <Automation approved={approved} setApproved={setApproved} toast={toast} />}
         {page === "integrations" && <Integrations toast={toast} />}
@@ -368,7 +369,7 @@ function Research({ filter, setFilter, data, query, toast }: { filter: string; s
   </>;
 }
 
-function CRM({ data, toast }: { data: typeof leads; toast: (s: string) => void }) {
+function CRM({ data, toast, createCustomerRequest }: { data: typeof leads; toast: (s: string) => void; createCustomerRequest: number }) {
   const [tab, setTab] = useState<"accounts" | "contacts" | "leads" | "opportunities">("accounts");
   const [accounts, setAccounts] = useState<AccountRecord[]>([]);
   const [contacts, setContacts] = useState<ContactRecord[]>([]);
@@ -404,6 +405,14 @@ function CRM({ data, toast }: { data: typeof leads; toast: (s: string) => void }
   const [opportunityStage, setOpportunityStage] = useState("qualification");
   const isLive = Boolean(supabase);
   const canManageSales = !isLive || role==="admin" || role==="sales";
+
+  useEffect(() => {
+    if (createCustomerRequest > 0) {
+      setTab("accounts");
+      setFormKind("account");
+      setError("");
+    }
+  }, [createCustomerRequest]);
 
   async function reload() {
     if (!supabase) return;
