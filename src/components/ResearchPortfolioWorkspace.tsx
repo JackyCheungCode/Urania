@@ -3,7 +3,7 @@ import InvestmentModelPanel from "./InvestmentModelPanel";
 import { Button, Checkbox, InlineNotification, Select, SelectItem, TextArea, TextInput, Tile } from "@carbon/react";
 import {
   createResearchProject, listResearchProjects, createResearchOpportunity, listResearchOpportunities,
-  createResearchEvidenceSource, createResearchEvidence, listResearchEvidence, listResearchEvidenceSources, createResearchFinding, createResearchRisk, listResearchRisks, verifyResearchEvidence, type ResearchRiskRecord,
+  createResearchEvidenceSource, createResearchEvidence, listResearchEvidence, listResearchEvidenceSources, createResearchFinding, createResearchRisk, listResearchRisks, verifyResearchEvidence, type ResearchRiskRecord, listResearchFindings, type ResearchFindingRecord,
   type ResearchProjectRecord, type ResearchOpportunityRecord, type ResearchEvidenceRecord
 } from "../lib/api";
 
@@ -33,7 +33,7 @@ export default function ResearchPortfolioWorkspace() {
   const [findingType,setFindingType]=useState("claim");
   const [findingClaim,setFindingClaim]=useState("");
   const [findingExplanation,setFindingExplanation]=useState("");
-  const [risks,setRisks]=useState<ResearchRiskRecord[]>([]);
+  const [risks,setRisks]=useState<ResearchRiskRecord[]>([]);\n  const [findings,setFindings]=useState<ResearchFindingRecord[]>([]);
   const [riskCategory,setRiskCategory]=useState("regulatory");
   const [riskSeverity,setRiskSeverity]=useState("high");
   const [riskLikelihood,setRiskLikelihood]=useState("medium");
@@ -58,7 +58,7 @@ export default function ResearchPortfolioWorkspace() {
   }
   useEffect(()=>{void loadProjects().catch(e=>setError(e instanceof Error?e.message:"无法读取研究项目。"));void listResearchEvidenceSources().then(rows=>{setSourceIds(rows.map(s=>({id:s.id,label:s.publisher+(s.title?" · "+s.title:"")})));if(rows[0])setSourceId(rows[0].id);}).catch(e=>setError(e instanceof Error?e.message:"无法读取来源目录。"));},[]);
   useEffect(()=>{void loadOpportunities(projectId).catch(e=>setError(e instanceof Error?e.message:"无法读取机会。"));},[projectId]);
-  useEffect(()=>{void loadEvidence(opportunityId).catch(e=>setError(e instanceof Error?e.message:"无法读取证据。"));if(opportunityId)void listResearchRisks(opportunityId).then(setRisks).catch(e=>setError(e instanceof Error?e.message:"无法读取风险登记簿。"));else setRisks([]);},[opportunityId]);
+  useEffect(()=>{void loadEvidence(opportunityId).catch(e=>setError(e instanceof Error?e.message:"无法读取证据。"));if(opportunityId){void listResearchRisks(opportunityId).then(setRisks).catch(e=>setError(e instanceof Error?e.message:"无法读取风险登记簿。"));void listResearchFindings(opportunityId).then(setFindings).catch(e=>setError(e instanceof Error?e.message:"无法读取阶段结论。"));}else{setRisks([]);setFindings([]);}},[opportunityId]);
 
   async function saveProject(e:FormEvent) {
     e.preventDefault();setBusy(true);setError("");setNotice("");
@@ -77,7 +77,7 @@ export default function ResearchPortfolioWorkspace() {
   }
   async function saveFinding(e:FormEvent) {
     e.preventDefault();if(!opportunityId)return;setBusy(true);setError("");setNotice("");
-    try {await createResearchFinding({opportunity_id:opportunityId,stage:findingStage,claim:findingClaim,explanation:findingExplanation||undefined,finding_type:findingType as "claim"|"observation"|"estimate"|"contradiction"|"gap"});setFindingClaim("");setFindingExplanation("");setNotice("研究阶段结论已保存；未关联证据的结论仍保持证据不足。");}
+    try {await createResearchFinding({opportunity_id:opportunityId,stage:findingStage,claim:findingClaim,explanation:findingExplanation||undefined,finding_type:findingType as "claim"|"observation"|"estimate"|"contradiction"|"gap"});setFindings(await listResearchFindings(opportunityId));setFindingClaim("");setFindingExplanation("");setNotice("研究阶段结论已保存；未关联证据的结论仍保持证据不足。");}
     catch(err){setError(err instanceof Error?err.message:"保存研究结论失败。");}finally{setBusy(false);}
   }
   async function verifyEvidence(id:string) {
