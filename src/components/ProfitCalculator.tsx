@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { Calculator, Save, Security } from "@carbon/react/icons";
-import { Button, InlineNotification, Select, SelectItem, TextInput, TextArea } from "@carbon/react";
+import { Button, InlineNotification, Select, SelectItem, TextInput, TextArea, Tile } from "@carbon/react";
 import { createProfitScenario, type ProductRecord } from "../lib/api";
 import { isSupabaseConfigured } from "../lib/supabase";
 
@@ -59,7 +59,7 @@ export default function ProfitCalculator({products,toast}:Props){
   const setB2B=(key:keyof typeof initialB2B,value:string)=>setB2b(prev=>({...prev,[key]:value}));
   const field=(label:string,key:string,value:string,onChange:(v:string)=>void,unit?:string,step="0.01")=><TextInput key={key} id={`profit-${key}`} className="profit-field" labelText={unit?`${label} (${unit})`:label} type="number" min="0" step={step} value={value} onChange={e=>onChange(e.target.value)} required/>;
 
-  return <section className="panel profit-calculator">
+  return <Tile className="panel profit-calculator">
     <div className="crm-toolbar"><div><div className="profit-title"><span className="profit-icon"><Calculator size={18}/></span><div><h3>利润情景计算器</h3><p className="panel-subtitle">按输入假设进行确定性计算；不是供应商报价、税务意见或实际销售数据。</p></div></div></div><div className="summary-actions"><Select id="profit-currency" labelText="币种" value={currency} onChange={e=>setCurrency(e.target.value)}><SelectItem value="USD" text="USD"/><SelectItem value="EUR" text="EUR"/><SelectItem value="GBP" text="GBP"/><SelectItem value="CNY" text="CNY"/><SelectItem value="PLN" text="PLN"/></Select></div></div>
     <div className="profit-tabs"><Button type="button" kind={scenario==="b2c"?"primary":"tertiary"} onClick={()=>setScenario("b2c")}>B2C 单件贡献利润</Button><Button type="button" kind={scenario==="b2b"?"primary":"tertiary"} onClick={()=>setScenario("b2b")}>B2B 订单利润</Button></div>
     <form onSubmit={save}>
@@ -91,5 +91,5 @@ export default function ProfitCalculator({products,toast}:Props){
       {error&&<InlineNotification kind="error" lowContrast title="计算器错误" subtitle={error} hideCloseButton/>}{savedId&&<InlineNotification kind="success" lowContrast title="已保存利润情景" subtitle={`情景 ID：${savedId}`} hideCloseButton/>}
       <div className="profit-actions"><span><Security size={14}/>前端实时预览；保存时由数据库独立复算。</span><Button kind="primary" type="submit" disabled={saving||!valid||!isSupabaseConfigured}><Save size={14}/>{saving?"保存中…":"保存利润情景"}</Button></div>
     </form>
-  </section>;
+  </Tile>;
 }
