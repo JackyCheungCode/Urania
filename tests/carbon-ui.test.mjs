@@ -13,7 +13,7 @@ const uiFiles = [
 test("all interactive controls and data tables use Carbon components", async () => {
   for (const file of uiFiles) {
     const source = await readFile(new URL(`../${file}`, import.meta.url), "utf8");
-    assert.doesNotMatch(source, /<\/?(?:button|input|select|textarea|table|thead|tbody|tr|th|td)(?=[\s/>])/i, `${file} contains a native control or table`);
+    assert.doesNotMatch(source, /<\/?(?:button|input|select|textarea|table|thead|tbody|tr|th|td)(?=[\s/>])/, `${file} contains a native control or table`);
     assert.doesNotMatch(source, /from ["']lucide-react["']/, `${file} imports a non-Carbon icon library`);
     assert.match(source, /@carbon\/(?:react|react\/icons)/, `${file} must use Carbon`);
   }
