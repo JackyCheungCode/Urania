@@ -248,3 +248,9 @@ label{color:#393939}
 .research-verification-tools{display:grid;grid-template-columns:minmax(180px,.7fr) minmax(240px,1.3fr);gap:1rem;margin:1rem 0}
 .research-evidence-actions{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
 @media(max-width:560px){.research-verification-tools{grid-template-columns:1fr}}
+
+
+.research-model-history{margin:1rem 0;padding:.85rem;border:1px solid var(--cds-border-subtle,#e0e0e0);border-radius:6px}
+.research-model-history>strong{display:block;margin-bottom:.5rem}
+.research-model-history>div{display:flex;justify-content:space-between;gap:1rem;padding:.45rem 0;border-top:1px solid var(--cds-border-subtle,#e0e0e0);font-size:.82rem;flex-wrap:wrap}
+.research-model-history small{color:var(--cds-text-secondary,#525252)}
