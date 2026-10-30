@@ -587,3 +587,14 @@ export async function saveResearchAssumption(input:{opportunity_id:string;assump
 export async function listResearchAssumptions(opportunityId:string):Promise<ResearchAssumptionRecord[]>{
  return await rpc("urania_research_list_assumptions",{p_opportunity_id:opportunityId},["admin","researcher"]);
 }
+
+
+export async function createAIResearchJob(input:{
+ opportunity_id:string;query:string;stage:string;context?:string;provider_key:"openai_api"|"anthropic_api"|"google_gemini_api";
+ market_country?:string;idempotency_key:string;
+}):Promise<{id:string;status:string}>{
+ if(!input.opportunity_id||input.query.trim().length<5)throw new Error("研究机会和至少 5 个字符的研究问题为必填项。");
+ return createCollectionJob({job_type:"research.ai_analysis",provider_key:input.provider_key,market_country:input.market_country||null,
+  input_payload:{query:input.query.trim(),stage:input.stage,context:input.context||"",opportunity_id:input.opportunity_id},
+  idempotency_key:input.idempotency_key});
+}
