@@ -4,6 +4,7 @@ import { supabase } from "./lib/supabase";
 import CRMExtras from "./components/CRMExtras";
 import ProfitCalculator from "./components/ProfitCalculator";
 import ProductScoringPanel from "./components/ProductScoringPanel";
+import ResearchWorkspace from "./components/ResearchWorkspace";
 import { createAccount, createCollectionJob, createContact, createLead, createOpportunity, createProduct, listAccounts, listCollectionJobs, listContacts, listDataSources, listLeads, listOpportunities, listProducts, listApprovals, reviewApproval, createEmailApproval, saveProviderCredential, updateProviderState, type ApprovalRecord, type CollectionJobRecord, type AccountRecord, type ContactRecord, type LeadRecord, type OpportunityRecord, type ProductRecord } from "./lib/api";
 import { Activity, ArrowRight, ArrowUpRight, Compass, Download, Menu, Search, Target, ChevronDown, Activity as ClipboardList, Activity as ListTodo, Activity as TrendingUp, ChartBar as BarChart3, Notification as Bell, Catalog as Boxes, Building as Building2, Checkmark as Check, Help as CircleHelp, Time as Clock3, Terminal as Command, DataBase as Database, Launch as ExternalLink, SearchLocate as FileSearch, Earth as Globe2, Dashboard as LayoutDashboard, Email as Mail,  Add as Plus, Settings as Settings2, Security as ShieldCheck, Idea as Sparkles, UserMultiple as Users, Flow as Workflow, Close as X, Flash as Zap } from "@carbon/react/icons";
 
@@ -206,7 +207,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => Promise<void> }) {
         </div>
 
         {page === "overview" && <Overview go={go} toast={toast} />}
-        {page === "research" && <Research filter={filter} setFilter={setFilter} data={filteredOpportunities} query={query} toast={toast} />}
+        {page === "research" && <ResearchWorkspace toast={toast} />}
         {page === "crm" && <CRM data={visibleLeads} toast={toast} createCustomerRequest={createCustomerRequest} />}
         {page === "intelligence" && <Intelligence toast={toast} />}
         {page === "automation" && <Automation toast={toast} />}
