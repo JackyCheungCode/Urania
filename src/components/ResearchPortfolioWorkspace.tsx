@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Button, InlineNotification, Select, SelectItem, TextArea, TextInput, Tile } from "@carbon/react";
 import {
   createResearchProject, listResearchProjects, createResearchOpportunity, listResearchOpportunities,
-  createResearchEvidenceSource, createResearchEvidence, listResearchEvidence,
+  createResearchEvidenceSource, createResearchEvidence, listResearchEvidence, listResearchEvidenceSources,
   type ResearchProjectRecord, type ResearchOpportunityRecord, type ResearchEvidenceRecord
 } from "../lib/api";
 
@@ -42,7 +42,7 @@ export default function ResearchPortfolioWorkspace() {
     if(!id){setEvidence([]);return;}
     setEvidence(await listResearchEvidence(id));
   }
-  useEffect(()=>{void loadProjects().catch(e=>setError(e instanceof Error?e.message:"无法读取研究项目。"));},[]);
+  useEffect(()=>{void loadProjects().catch(e=>setError(e instanceof Error?e.message:"无法读取研究项目。"));void listResearchEvidenceSources().then(rows=>{setSourceIds(rows.map(s=>({id:s.id,label:s.publisher+(s.title?" · "+s.title:"")})));if(rows[0])setSourceId(rows[0].id);}).catch(e=>setError(e instanceof Error?e.message:"无法读取来源目录。"));},[]);
   useEffect(()=>{void loadOpportunities(projectId).catch(e=>setError(e instanceof Error?e.message:"无法读取机会。"));},[projectId]);
   useEffect(()=>{void loadEvidence(opportunityId).catch(e=>setError(e instanceof Error?e.message:"无法读取证据。"));},[opportunityId]);
 
@@ -58,7 +58,7 @@ export default function ResearchPortfolioWorkspace() {
   }
   async function saveSource(e:FormEvent) {
     e.preventDefault();setBusy(true);setError("");setNotice("");
-    try {const row=await createResearchEvidenceSource({publisher,source_type:sourceType,source_url:sourceUrl||undefined,license_name:license||undefined});const id=String(row.id||"");setSourceId(id);setSourceIds(v=>[{id,label:publisher},...v]);setPublisher("");setSourceUrl("");setLicense("");setNotice("来源登记完成；接下来可将具体证据记录关联到该来源。");}
+    try {const row=await createResearchEvidenceSource({publisher,source_type:sourceType,source_url:sourceUrl||undefined,license_name:license||undefined});const id=String(row.id||"");setSourceId(id);setSourceIds(v=>[{id,label:publisher},...v.filter(x=>x.id!==id)]);setPublisher("");setSourceUrl("");setLicense("");setNotice("来源登记完成；接下来可将具体证据记录关联到该来源。");}
     catch(err){setError(err instanceof Error?err.message:"来源登记失败。");}finally{setBusy(false);}
   }
   async function saveEvidence(e:FormEvent) {
