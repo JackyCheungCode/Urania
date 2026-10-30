@@ -606,3 +606,9 @@ export async function createResearchSearchJob(input:{opportunity_id:string;query
 export async function listResearchSearchResults(opportunityId:string):Promise<ResearchSearchResultRecord[]>{
  return await rpc("urania_research_list_search_results",{p_opportunity_id:opportunityId},["admin","researcher"]);
 }
+
+
+export type ResearchRunRecord={id:string;opportunity_id:string;run_type:string;status:string;model_provider:string|null;model_name:string|null;prompt_version:string|null;input_scope:Record<string,unknown>;output_summary:Record<string,unknown>;started_at:string|null;finished_at:string|null;created_at:string};
+export async function listResearchRuns(opportunityId:string):Promise<ResearchRunRecord[]>{
+ return await rpc("urania_research_list_runs",{p_opportunity_id:opportunityId},["admin","researcher"]);
+}
