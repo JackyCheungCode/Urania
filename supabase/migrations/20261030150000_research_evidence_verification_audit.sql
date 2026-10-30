@@ -31,7 +31,7 @@ begin
       evidence_record_id,previous_status,new_status,note,actor_id
     ) values (
       new.id,old.verification_status,new.verification_status,
-      coalesce(nullif(current_setting('request.jwt.claims',true)::jsonb->>'verification_note',''),'Status changed through an authorized database update.'),
+      coalesce(nullif(new.raw_payload->>'verification_note',''),'Status changed through an authorized database update.'),
       coalesce(auth.uid(),new.verified_by,new.created_by)
     );
   end if;
