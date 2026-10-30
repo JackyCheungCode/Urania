@@ -73,7 +73,7 @@ async function requestAI(providerKey, apiKey, job) {
     if(!response.ok) throw new Error(response.status===429?"ai_rate_limited":response.status>=500?"ai_provider_unavailable":"ai_auth_or_request_error");
     return {model:raw.model||config.model,content:(raw.content||[]).filter(x=>x.type==="text").map(x=>x.text).join("\n")};
   }
-  response=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+config.model+":generateContent?key="+encodeURIComponent(apiKey),{method:"POST",headers:{"content-type":"application/json","x-goog-api-key":apiKey},body:JSON.stringify({systemInstruction:{parts:[{text:prompt.system}]},contents:[{role:"user",parts:[{text:prompt.user}]}],generationConfig:{temperature:0.1,responseMimeType:"application/json",maxOutputTokens:3000}}),signal:AbortSignal.timeout(45000)});
+  response=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+config.model+":generateContent",{method:"POST",headers:{"content-type":"application/json","x-goog-api-key":apiKey},body:JSON.stringify({systemInstruction:{parts:[{text:prompt.system}]},contents:[{role:"user",parts:[{text:prompt.user}]}],generationConfig:{temperature:0.1,responseMimeType:"application/json",maxOutputTokens:3000}}),signal:AbortSignal.timeout(45000)});
   raw=await response.json();
   if(!response.ok) throw new Error(response.status===429?"ai_rate_limited":response.status>=500?"ai_provider_unavailable":"ai_auth_or_request_error");
   return {model:config.model,content:raw.candidates?.[0]?.content?.parts?.map(x=>x.text||"").join("\n")};
