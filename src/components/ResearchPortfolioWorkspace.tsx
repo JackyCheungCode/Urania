@@ -51,6 +51,7 @@ export default function ResearchPortfolioWorkspace() {
   const [auditEvents,setAuditEvents]=useState<ResearchAuditEvent[]>([]);
   const [decisionChoice,setDecisionChoice]=useState<"invest"|"validate_more"|"defer"|"reject">("validate_more");
   const [decisionRationale,setDecisionRationale]=useState("");
+  const [scoreSnapshot,setScoreSnapshot]=useState<{commercialScore:number;evidenceCoverage:number;evidenceReadiness:number}|null>(null);
   const [aiProvider,setAiProvider]=useState<"openai_api"|"anthropic_api"|"google_gemini_api">("openai_api");
   const [aiQuery,setAiQuery]=useState("");
   const [aiContext,setAiContext]=useState("");
@@ -104,7 +105,7 @@ export default function ResearchPortfolioWorkspace() {
   }
   async function submitDecision(e:FormEvent) {
     e.preventDefault();if(!opportunityId)return;setBusy(true);setError("");setNotice("");
-    try {const models=await listResearchFinancialModels(opportunityId);const latestModel=models[0];await submitResearchDecision({opportunity_id:opportunityId,decision:decisionChoice,rationale:decisionRationale,model_version:"urania-decision-v1",financial_model_id:latestModel?.id||null});setDecisionRationale("");setDecisions(await listResearchDecisions(opportunityId));setNotice("投资建议已提交审批队列；提交不代表批准。");}
+    try {const models=await listResearchFinancialModels(opportunityId);const latestModel=models[0];await submitResearchDecision({opportunity_id:opportunityId,decision:decisionChoice,rationale:decisionRationale,model_version:"urania-decision-v1",financial_model_id:latestModel?.id||null,commercial_score:scoreSnapshot?.commercialScore??null,evidence_coverage:scoreSnapshot?.evidenceCoverage??null});setDecisionRationale("");setDecisions(await listResearchDecisions(opportunityId));setNotice("投资建议已提交审批队列；提交不代表批准。");}
     catch(err){setError(err instanceof Error?err.message:"投资建议提交失败。");}finally{setBusy(false);}
   }
   async function approveDecision(id:string) {
@@ -207,7 +208,7 @@ export default function ResearchPortfolioWorkspace() {
         <div className="research-portfolio-list">{findings.map(f=><div key={f.id} className="research-portfolio-row"><strong>{f.claim}</strong><span>{f.stage} · {f.finding_type} · {f.evidence_status}</span></div>)}{findings.length===0&&<p className="muted">尚无阶段结论。</p>}</div>
       </section>
       <MarketSizingPanel opportunityId={opportunityId} />
-      <ResearchScorePanel activeHardVeto={risks.some(r=>r.hard_veto&&["open","mitigating"].includes(r.status))} />
+      <ResearchScorePanel activeHardVeto={risks.some(r=>r.hard_veto&&["open","mitigating"].includes(r.status))} onScoreChange={setScoreSnapshot} />
       <section className="research-portfolio-section">
         <h3>05A · AI 研究任务</h3>
         <p className="panel-note">AI 仅生成待核验研究结论，不会自动产生事实证据、来源引用或投资批准。请先在集成中心配置 API 密钥，并将供应商状态与授权审核设为有效。</p>
