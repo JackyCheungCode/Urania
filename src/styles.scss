@@ -281,3 +281,7 @@ label{color:#393939}
 
 .research-market-save{display:flex;align-items:center;gap:.75rem;margin:1rem 0}
 .research-market-save span{font-size:.82rem;color:var(--cds-text-secondary,#525252)}
+
+
+.research-market-evidence-links{display:grid;gap:.5rem;margin:1rem 0;padding:.85rem;border:1px solid var(--cds-border-subtle,#e0e0e0);border-radius:6px}
+.research-market-evidence-links>strong{font-size:.85rem}
