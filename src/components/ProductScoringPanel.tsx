@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { WarningAlt, CheckmarkFilled, Gauge, Security, Idea } from "@carbon/icons-react";
+import { WarningAlt, CheckmarkFilled, Gauge, Security, Idea } from "@carbon/react/icons";
 import { Button, Checkbox, InlineNotification, Select, SelectItem, Slider, TextArea } from "@carbon/react";
 import { createProductScore, type ProductRecord, type ProductScoreRecord } from "../lib/api";
 import { supabase } from "../lib/supabase";
