@@ -14,9 +14,10 @@ export default function MarketSizingPanel({opportunityId}:{opportunityId:string}
  const [inputs,setInputs]=useState<MarketSizingInputs>(initial);
  const [saving,setSaving]=useState(false);
  const [saveError,setSaveError]=useState("");
+ const [historyError,setHistoryError]=useState("");
  const [savedVersion,setSavedVersion]=useState<number|null>(null);
  const [history,setHistory]=useState<ResearchAssumptionRecord[]>([]);
- useEffect(()=>{if(!opportunityId){setHistory([]);return;}void listResearchAssumptions(opportunityId).then(rows=>setHistory(rows.filter(r=>r.assumption_key==="market_sizing")));},[opportunityId]);
+ useEffect(()=>{setInputs(initial);setSavedVersion(null);setHistoryError("");if(!opportunityId){setHistory([]);return;}void listResearchAssumptions(opportunityId).then(rows=>setHistory(rows.filter(r=>r.assumption_key==="market_sizing"))).catch(error=>setHistoryError(error instanceof Error?error.message:"无法读取市场规模版本历史。"));},[opportunityId]);
  const update=<K extends keyof MarketSizingInputs>(key:K,value:MarketSizingInputs[K])=>setInputs(current=>({...current,[key]:value}));
  const errors=useMemo(()=>validateMarketSizingInputs(inputs),[inputs]);
  const result=useMemo(()=>{if(errors.length)return null;try{return calculateMarketSizing(inputs);}catch{return null;}},[inputs,errors]);
@@ -39,6 +40,7 @@ export default function MarketSizingPanel({opportunityId}:{opportunityId:string}
   </div>
   {errors.length>0&&<InlineNotification kind="error" lowContrast title="请修正输入" subtitle={errors.join(" ")} hideCloseButton/>}
   {saveError&&<InlineNotification kind="error" lowContrast title="保存失败" subtitle={saveError} hideCloseButton/>}
+  {historyError&&<InlineNotification kind="error" lowContrast title="版本历史读取失败" subtitle={historyError} hideCloseButton/>}
   {result&&<><div className="research-market-results">
    <div><span>自上而下 TAM</span><strong>{money(result.topDownTAM,inputs.currency)}</strong></div>
    <div><span>自下而上 TAM</span><strong>{money(result.bottomUpTAM,inputs.currency)}</strong></div>
