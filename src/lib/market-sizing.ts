@@ -34,6 +34,7 @@ export function validateMarketSizingInputs(input:MarketSizingInputs):string[]{
   for(const key of nonNegative)if(!Number.isFinite(input[key])||input[key]<0)errors.push(`${key} 必须是非负有限数值。`);
   if(!Number.isFinite(input.topDownAddressableShare)||input.topDownAddressableShare<0||input.topDownAddressableShare>1)errors.push("自上而下可服务市场占比必须介于 0 和 1。");
   if(!Number.isFinite(input.leadToCustomerConversionRate)||input.leadToCustomerConversionRate<0||input.leadToCustomerConversionRate>1)errors.push("线索转化率必须介于 0 和 1。");
+  for(const key of ["bottomUpTotalCustomers","bottomUpAddressableCustomers","salesReps","qualifiedLeadsPerRepPerMonth","annualDeliveryCapacityCustomers"] as const)if(!Number.isInteger(input[key]))errors.push(key+" 必须是整数。");
   if(input.bottomUpAddressableCustomers>input.bottomUpTotalCustomers)errors.push("可服务客户数不能超过总客户数。");
   if(input.topDownTotalMarket===0)errors.push("自上而下 TAM 必须大于 0。");
   if(input.bottomUpTotalCustomers===0||input.bottomUpAnnualSpendPerCustomer===0)errors.push("自下而上客户数与年支出必须大于 0。");
