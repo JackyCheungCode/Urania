@@ -573,3 +573,8 @@ export async function approveResearchDecision(decisionId:string,note?:string):Pr
 export async function listResearchDecisions(opportunityId:string):Promise<ResearchDecisionRecord[]>{
   return await rpc("urania_research_list_decisions",{p_opportunity_id:opportunityId},["admin","researcher"]);
 }
+
+
+export async function reviewResearchRisk(input:{risk_id:string;status:"open"|"mitigating"|"accepted"|"resolved"|"false_positive";note:string}):Promise<{id:string;status:string;reviewed_by:string;reviewed_at:string}>{
+ return await rpc("urania_research_review_risk",{p_risk_id:input.risk_id,p_status:input.status,p_note:input.note},["admin"]);
+}
