@@ -31,7 +31,7 @@ export default function InvestmentModelPanel({ opportunityId }: { opportunityId:
   ];
   return <Tile className="panel research-portfolio-section investment-model-panel">
     <div className="section-title"><h3>05 · 确定性投资财务模型</h3><span className="muted">引擎 v1.0 · 确定性计算 · 版本化保存</span></div>
-    <p className="panel-note">下行情景、基准情景和上行情景由确定性公式计算，不由 AI 生成。当前版本为工作台计算预览，尚未写入版本化财务模型表；所有输入均为待核实假设，不代表实际业绩或投资建议。</p>
+    <p className="panel-note">下行情景、基准情景和上行情景由确定性公式计算，不由 AI 生成。当前版本会保存不可覆盖的财务模型快照；所有输入均为待核实假设，不代表实际业绩或投资建议。</p>
     <form onSubmit={submit}>
       <div className="research-financial-fields">
         <Select id="investment-currency" labelText="报告币种" value={inputs.currency} onChange={e=>update("currency",e.target.value)}>
