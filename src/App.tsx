@@ -122,7 +122,7 @@ export default function App() {
   }
   if (!authReady) return <div className="auth-screen"><div className="auth-loading">正在连接 Urania 安全登录…</div></div>;
   if (!signedIn) return <LoginScreen onLogin={login} />;
-  return <LayoutDashboard onSignOut={logout} />;
+  return <Dashboard onSignOut={logout} />;
 }
 
 function Dashboard({ onSignOut }: { onSignOut: () => Promise<void> }) {
@@ -211,7 +211,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => Promise<void> }) {
         {page === "intelligence" && <Intelligence toast={toast} />}
         {page === "automation" && <Automation toast={toast} />}
         {page === "integrations" && <Integrations toast={toast} />}
-        {page === "settings" && <Settings2 toast={toast} />}
+        {page === "settings" && <Settings toast={toast} />}
         <footer className="page-footer"><span>© 2026 Urania Intelligence</span><span><span className="status-dot status-dot--warning" />实时模块与演示模块并存 · 请以数据来源标记为准</span><CarbonButton onClick={() => toast("当前版本 0.1.0 · Foundation；生产部署状态需单独核验。")}><ShieldCheck size={13} />版本 0.1.0</CarbonButton></footer>
       </div>
     </main>
