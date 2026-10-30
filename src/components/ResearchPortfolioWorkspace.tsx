@@ -243,7 +243,7 @@ export default function ResearchPortfolioWorkspace() {
           <TextArea id="research-decision-rationale" labelText="决策依据（至少 10 字）" value={decisionRationale} onChange={e=>setDecisionRationale(e.target.value)} required rows={3}/>
           <Button type="submit" size="sm" disabled={busy||!opportunityId||decisionRationale.trim().length<10}>提交审批</Button>
         </form>
-        <div className="research-portfolio-list">{decisions.map(d=><div key={d.id} className="research-portfolio-row"><strong>{d.decision} · {d.status}{d.hard_veto_triggered?" · 曾触发硬性否决":""}</strong><span>{d.rationale}</span>{d.status==="pending"&&<Button size="sm" kind="tertiary" disabled={busy||d.hard_veto_triggered} onClick={()=>void approveDecision(d.id)}>管理员批准</Button>}</div>)}{decisions.length===0&&<p className="muted">尚无投资审批记录。</p>}</div>
+        <div className="research-portfolio-list">{decisions.map(d=><div key={d.id} className="research-portfolio-row"><strong>{d.decision} · {d.status}{d.hard_veto_triggered?" · 曾触发硬性否决":""}</strong><span>{d.rationale}</span>{d.status==="pending"&&<Button size="sm" kind="tertiary" disabled={busy} onClick={()=>void approveDecision(d.id)}>管理员批准</Button>}</div>)}{decisions.length===0&&<p className="muted">尚无投资审批记录。</p>}</div>
       </section>
     </div>
     <section className="research-portfolio-evidence">
