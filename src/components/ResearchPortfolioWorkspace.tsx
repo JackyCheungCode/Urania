@@ -5,7 +5,7 @@ import ResearchScorePanel from "./ResearchScorePanel";
 import { Button, Checkbox, InlineNotification, Select, SelectItem, TextArea, TextInput, Tile } from "@carbon/react";
 import {
   createResearchProject, listResearchProjects, createResearchOpportunity, listResearchOpportunities,
-  createResearchEvidenceSource, createResearchEvidence, listResearchEvidence, listResearchEvidenceSources, createResearchFinding, createResearchRisk, listResearchRisks, verifyResearchEvidence, type ResearchRiskRecord, listResearchFindings, type ResearchFindingRecord, submitResearchDecision, approveResearchDecision, listResearchDecisions, type ResearchDecisionRecord, reviewResearchRisk, createAIResearchJob, listResearchAuditEvents, type ResearchAuditEvent, listResearchFinancialModels,
+  createResearchEvidenceSource, createResearchEvidence, listResearchEvidence, listResearchEvidenceSources, createResearchFinding, createResearchRisk, listResearchRisks, verifyResearchEvidence, type ResearchRiskRecord, listResearchFindings, type ResearchFindingRecord, submitResearchDecision, approveResearchDecision, listResearchDecisions, type ResearchDecisionRecord, reviewResearchRisk, createAIResearchJob, listResearchAuditEvents, type ResearchAuditEvent, listResearchFinancialModels, createResearchSearchJob, listResearchSearchResults, type ResearchSearchResultRecord,
   type ResearchProjectRecord, type ResearchOpportunityRecord, type ResearchEvidenceRecord
 } from "../lib/api";
 
@@ -13,6 +13,10 @@ export default function ResearchPortfolioWorkspace() {
   const [projects,setProjects]=useState<ResearchProjectRecord[]>([]);
   const [opportunities,setOpportunities]=useState<ResearchOpportunityRecord[]>([]);
   const [evidence,setEvidence]=useState<ResearchEvidenceRecord[]>([]);
+  const [searchResults,setSearchResults]=useState<ResearchSearchResultRecord[]>([]);
+  const [searchQuery,setSearchQuery]=useState("");
+  const [searchCountry,setSearchCountry]=useState("");
+  const [importedSearchIds,setImportedSearchIds]=useState<string[]>([]);
   const [projectId,setProjectId]=useState("");
   const [opportunityId,setOpportunityId]=useState("");
   const [projectName,setProjectName]=useState("");
@@ -85,7 +89,7 @@ export default function ResearchPortfolioWorkspace() {
   }
   useEffect(()=>{void loadProjects().catch(e=>setError(e instanceof Error?e.message:"无法读取研究项目。"));void listResearchEvidenceSources().then(rows=>{setSourceIds(rows.map(s=>({id:s.id,label:s.publisher+(s.title?" · "+s.title:"")})));if(rows[0])setSourceId(rows[0].id);}).catch(e=>setError(e instanceof Error?e.message:"无法读取来源目录。"));},[]);
   useEffect(()=>{void loadOpportunities(projectId).catch(e=>setError(e instanceof Error?e.message:"无法读取机会。"));},[projectId]);
-  useEffect(()=>{void loadEvidence(opportunityId).catch(e=>setError(e instanceof Error?e.message:"无法读取证据。"));if(opportunityId){void listResearchRisks(opportunityId).then(setRisks).catch(e=>setError(e instanceof Error?e.message:"无法读取风险登记簿。"));void listResearchFindings(opportunityId).then(setFindings).catch(e=>setError(e instanceof Error?e.message:"无法读取阶段结论。"));void listResearchDecisions(opportunityId).then(setDecisions).catch(e=>setError(e instanceof Error?e.message:"无法读取投资决策历史。"));void listResearchAuditEvents(opportunityId).then(setAuditEvents).catch(e=>setError(e instanceof Error?e.message:"无法读取审计时间线。"));}else{setRisks([]);setFindings([]);setDecisions([]);setAuditEvents([]);}},[opportunityId]);
+  useEffect(()=>{void loadEvidence(opportunityId).catch(e=>setError(e instanceof Error?e.message:"无法读取证据。"));if(opportunityId){void listResearchRisks(opportunityId).then(setRisks).catch(e=>setError(e instanceof Error?e.message:"无法读取风险登记簿。"));void listResearchFindings(opportunityId).then(setFindings).catch(e=>setError(e instanceof Error?e.message:"无法读取阶段结论。"));void listResearchDecisions(opportunityId).then(setDecisions).catch(e=>setError(e instanceof Error?e.message:"无法读取投资决策历史。"));void listResearchAuditEvents(opportunityId).then(setAuditEvents).catch(e=>setError(e instanceof Error?e.message:"无法读取审计时间线。"));void listResearchSearchResults(opportunityId).then(setSearchResults).catch(e=>setError(e instanceof Error?e.message:"无法读取搜索结果。"));setImportedSearchIds([]);}else{setRisks([]);setFindings([]);setDecisions([]);setAuditEvents([]);setSearchResults([]);setImportedSearchIds([]);}},[opportunityId]);
 
   async function refreshAudit(){if(opportunityId)setAuditEvents(await listResearchAuditEvents(opportunityId));}
   async function saveProject(e:FormEvent) {
@@ -113,6 +117,13 @@ export default function ResearchPortfolioWorkspace() {
     try {await reviewResearchRisk({risk_id:id,status:riskReviewStatus,note:riskReviewNote});setRiskReviewNote("");if(opportunityId)setRisks(await listResearchRisks(opportunityId));await refreshAudit();setNotice("风险状态已更新，审查说明已写入审计历史。");}
     catch(err){setError(err instanceof Error?err.message:"风险审查失败；请确认管理员权限。");}finally{setBusy(false);}
   }
+  async function queueResearchSearch(e:FormEvent) {
+    e.preventDefault();if(!opportunityId)return;setBusy(true);setError("");setNotice("");
+    try {const job=await createResearchSearchJob({opportunity_id:opportunityId,query:searchQuery,market_country:searchCountry||undefined,idempotency_key:crypto.randomUUID()});setNotice("网页搜索任务已加入队列（"+job.id+"）。任务完成后点击刷新搜索结果。");}
+    catch(err){setError(err instanceof Error?err.message:"搜索任务提交失败；请检查 SerpApi 凭证、授权状态和队列配置。");}finally{setBusy(false);}
+  }
+  async function refreshSearchResults(){if(!opportunityId)return;setBusy(true);setError("");try{setSearchResults(await listResearchSearchResults(opportunityId));}catch(err){setError(err instanceof Error?err.message:"刷新搜索结果失败。");}finally{setBusy(false);}}
+  async function importSearchEvidence(result:ResearchSearchResultRecord){if(!opportunityId||importedSearchIds.includes(result.id))return;setBusy(true);setError("");setNotice("");try{const publisher=result.displayed_url||"Web search result";const source=await createResearchEvidenceSource({publisher,source_type:"web",source_url:result.url||undefined,title:result.title,license_scope:"搜索摘要仅作发现线索；引用或决策前须打开原文核验并确认许可。"});const sourceId=String(source.id||"");await createResearchEvidence({opportunity_id:opportunityId,evidence_source_id:sourceId,evidence_class:"proxy_indicator",claim_supported:"搜索结果线索："+result.title+(result.snippet?" — "+result.snippet:""),methodology:"SerpApi 搜索结果摘要；仅为网页存在性 / 主题相关性代理线索，不构成销量、客户需求或市场规模证据。需核验原始页面。",raw_excerpt:result.snippet||undefined,geography:result.market_country||undefined});setSourceIds(current=>[{id:sourceId,label:publisher+" · "+result.title},...current]);setEvidence(await listResearchEvidence(opportunityId));setImportedSearchIds(current=>[...current,result.id]);setNotice("搜索线索已转为未核验代理证据；它不能单独证明需求或交易。");}catch(err){setError(err instanceof Error?err.message:"搜索线索导入证据失败。");}finally{setBusy(false);}}
   async function queueAIResearch(e:FormEvent) {
     e.preventDefault();if(!opportunityId)return;setBusy(true);setError("");setNotice("");
     try {const job=await createAIResearchJob({opportunity_id:opportunityId,query:aiQuery,stage:findingStage,context:aiContext,provider_key:aiProvider,idempotency_key:crypto.randomUUID()});setAiQuery("");setAiContext("");setNotice("AI 研究任务已加入队列（"+job.id+"）。输出会保存为证据不足的模型生成结论，必须人工补充证据与核验。");}
