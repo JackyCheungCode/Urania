@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { ArrowRight, LockKeyhole, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, LockKeyhole, ShieldCheck, Sparkles } from "@carbon/icons-react";
+import { Button, InlineNotification, PasswordInput, TextInput } from "@carbon/react";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 
 export default function AuthGate({ children }: { children: ReactNode }) {
@@ -74,11 +75,11 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     <div className="auth-brand"><span className="brand-mark"><Sparkles size={20}/></span><div><strong>urania<span>.</span></strong><small>GLOBAL INTELLIGENCE</small></div></div>
     <div className="auth-symbol"><LockKeyhole size={24}/></div><p className="eyebrow">PRIVATE WORKSPACE</p><h1>登录 Urania</h1>
     <p className="auth-description">使用工作区账号登录。只有经管理员授予角色的用户才能访问业务数据。</p>
-    <form className="auth-form" onSubmit={signIn}><label>工作邮箱<input type="email" autoComplete="username" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@company.com"/></label><label>密码<input type="password" autoComplete="current-password" minLength={8} required value={password} onChange={e=>setPassword(e.target.value)} placeholder="至少 8 位"/></label>
-    {error && <p className="auth-error" role="alert">{error}</p>}{info && <p className="auth-info" role="status">{info}</p>}
-    <button className="button button--primary auth-submit" type="submit" disabled={busy}>{busy?"正在登录…":"安全登录"}<ArrowRight size={16}/></button></form>
+    <form className="auth-form" onSubmit={signIn}><TextInput id="auth-email" labelText="工作邮箱" type="email" autoComplete="username" required value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@company.com"/><PasswordInput id="auth-password" labelText="密码" autoComplete="current-password" minLength={8} required value={password} onChange={e=>setPassword(e.target.value)} placeholder="至少 8 位"/>
+    {error && <InlineNotification kind="error" lowContrast title="登录失败" subtitle={error} hideCloseButton/>}{info && <InlineNotification kind="info" lowContrast title="访问帮助" subtitle={info} hideCloseButton/>}
+    <Button className="auth-submit" type="submit" disabled={busy}>{busy?"正在登录…":"安全登录"}<ArrowRight size={16}/></Button></form>
     <div className="auth-security"><ShieldCheck size={16}/>启用服务端角色校验 · 不支持公开注册</div>
-    <button className="auth-help" onClick={()=>setInfo("请联系 Urania 工作区管理员创建账号并分配角色。")}>需要访问权限？</button>
+    <Button kind="ghost" className="auth-help" onClick={()=>setInfo("请联系 Urania 工作区管理员创建账号并分配角色。")}>需要访问权限？</Button>
   </section></div>;
 
   if (roleLoading) return <div className="auth-shell"><div className="auth-card auth-loading">正在验证工作区角色…</div></div>;
@@ -87,7 +88,7 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     <div className="auth-symbol"><ShieldCheck size={24}/></div><p className="eyebrow">ACCESS CONTROL</p><h1>等待工作区授权</h1>
     <p className="auth-description">当前账号已登录，但尚未获得 Urania 的有效工作区角色。为保护 CRM 和数据源配置，系统不会加载业务页面。</p>
     <div className="auth-security"><ShieldCheck size={16}/>请管理员通过 Supabase Auth 管理接口设置 <code>app_metadata.urania_role</code> 为 admin、researcher 或 sales。</div>
-    <button className="button button--secondary auth-submit" onClick={signOut}>安全退出</button>
+    <Button kind="secondary" className="auth-submit" onClick={signOut}>安全退出</Button>
   </section></div>;
-  return <>{children}<button className="auth-session-control" onClick={signOut} title="安全退出">已登录 · 退出</button></>;
+  return <>{children}<Button kind="ghost" className="auth-session-control" onClick={signOut} title="安全退出">已登录 · 退出</Button></>;
 }
