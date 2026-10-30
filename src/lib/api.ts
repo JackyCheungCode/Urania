@@ -412,7 +412,7 @@ export async function createProductScore(input:{
 
 export type ResearchProjectRecord = {
   id:string; name:string; objective:string; status:string; geographies:string[];
-  industries:string[]; investment_horizon:string; created_at:string;
+  industries:string[]; investment_horizon:string; investment_budget:Record<string,unknown>; approval_policy:string; created_at:string;
 };
 export type ResearchOpportunityRecord = {
   id:string; project_id:string; title:string; summary:string|null; opportunity_type:string;
