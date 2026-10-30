@@ -1,3 +1,10 @@
+import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { Button as CarbonButton, InlineNotification, PasswordInput, TextInput, TextArea, Checkbox, Select, SelectItem, Table as CarbonTable, TableHead, TableRow, TableHeader, TableBody, TableCell } from "@carbon/react";
+import { supabase } from "./lib/supabase";
+import CRMExtras from "./components/CRMExtras";
+import ProfitCalculator from "./components/ProfitCalculator";
+import ProductScoringPanel from "./components/ProductScoringPanel";
+import { createAccount, createCollectionJob, createContact, createLead, createOpportunity, createProduct, listAccounts, listCollectionJobs, listContacts, listDataSources, listLeads, listOpportunities, listProducts, listApprovals, reviewApproval, createEmailApproval, saveProviderCredential, updateProviderState, type ApprovalRecord, type CollectionJobRecord, type AccountRecord, type ContactRecord, type LeadRecord, type OpportunityRecord, type ProductRecord } from "./lib/api";
 import { Activity, ArrowRight, ArrowUpRight, Compass, Download, Menu, Search, Target, ChevronDown, ChartBar as BarChart3, Notification as Bell, Catalog as Boxes, Clipboard as ClipboardList, Building as Building2, Checkmark as Check, Help as CircleHelp, Time as Clock3, Terminal as Command, DataBase as Database, Launch as ExternalLink, SearchLocate as FileSearch, Earth as Globe2, Dashboard as LayoutDashboard, TaskList as ListTodo, Email as Mail, OverflowMenuHorizontal as MoreHorizontal, Add as Plus, Settings as Settings2, Security as ShieldCheck, Idea as Sparkles, TrendUp as TrendingUp, UserMultiple as Users, Flow as Workflow, Close as X, Flash as Zap } from "@carbon/react/icons";
 
 type Page = "overview" | "research" | "crm" | "intelligence" | "automation" | "integrations" | "settings";
