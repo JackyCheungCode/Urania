@@ -48,7 +48,8 @@ const ALLOWED_RPCS = {
   urania_research_save_assumption: { method: "POST", roles: ["admin", "researcher"] },
   urania_research_list_assumptions: { method: "POST", roles: ["admin", "researcher"] },
   urania_research_list_audit_events: { method: "POST", roles: ["admin", "researcher"] },
-  urania_research_list_search_results: { method: "POST", roles: ["admin", "researcher"] }
+  urania_research_list_search_results: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_list_runs: { method: "POST", roles: ["admin", "researcher"] }
 };
 
 function isConfiguredValue(value) {
