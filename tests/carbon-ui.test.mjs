@@ -50,6 +50,11 @@ test("business workspaces compose Carbon Tile surfaces and Grid/Column layouts",
   assert.match(app, /<OverflowMenu\b[\s\S]*<OverflowMenuItem/, "workspace actions must use Carbon menu primitives");
   assert.match(app, /InlineNotification className="toast-notification"/, "transient feedback must use Carbon notifications");
   assert.doesNotMatch(app, /className="inline-error"|className="inline-success"|className="auth-error"/, "custom alert patterns must be removed");
+  for (const file of ["src/App.tsx", "src/components/CRMExtras.tsx", "src/components/ProfitCalculator.tsx", "src/components/ProductScoringPanel.tsx"]) {
+    const source = await readFile(new URL("../" + file, import.meta.url), "utf8");
+    assert.doesNotMatch(source, /<section className="[^"]*\\bpanel\\b/, file + " still contains a legacy section panel");
+    assert.match(source, /<Tile\\b/, file + " must use Carbon Tile");
+  }
 });
 
 test("responsive acceptance breakpoints cover desktop, tablet and narrow mobile widths", async () => {
