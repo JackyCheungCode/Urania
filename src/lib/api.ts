@@ -417,3 +417,79 @@ export async function createProductScore(input:{
   },["admin","researcher"]);
   return result.data;
 }
+
+
+export type ResearchProjectRecord = {
+  id:string; name:string; objective:string; status:string; geographies:string[];
+  industries:string[]; investment_horizon:string; created_at:string;
+};
+export type ResearchOpportunityRecord = {
+  id:string; project_id:string; title:string; summary:string|null; opportunity_type:string;
+  target_markets:string[]; stage:string; decision_status:string; created_at:string;
+};
+export type ResearchEvidenceRecord = {
+  id:string; finding_id:string|null; opportunity_id:string; evidence_source_id:string;
+  publisher:string|null; source_type:string; source_url:string|null; source_title:string|null;
+  evidence_class:string; claim_supported:string; metric_name:string|null; metric_value:number|null;
+  metric_unit:string|null; geography:string|null; published_at:string|null; observed_at:string|null;
+  collected_at:string; methodology:string|null; verification_status:string; confidence:number|null;
+};
+export async function listResearchProjects():Promise<ResearchProjectRecord[]> {
+  return await rpc<ResearchProjectRecord[]>("urania_research_list_projects",{},["admin","researcher"]);
+}
+export async function createResearchProject(input:{
+  name:string;objective:string;geographies?:string[];industries?:string[];
+  investment_horizon?:"under_1y"|"1_3y"|"3_5y"|"over_5y";
+  investment_budget?:Record<string,unknown>;approval_policy?:"owner"|"committee"|"tiered";
+}):Promise<ResearchProjectRecord> {
+  return await rpc<ResearchProjectRecord>("urania_research_create_project",{
+    p_name:input.name,p_objective:input.objective,p_geographies:input.geographies||[],
+    p_industries:input.industries||[],p_investment_horizon:input.investment_horizon||"1_3y",
+    p_investment_budget:input.investment_budget||{},p_approval_policy:input.approval_policy||"tiered"
+  },["admin","researcher"]);
+}
+export async function listResearchOpportunities(projectId:string):Promise<ResearchOpportunityRecord[]> {
+  return await rpc<ResearchOpportunityRecord[]>("urania_research_list_opportunities",{p_project_id:projectId},["admin","researcher"]);
+}
+export async function createResearchOpportunity(input:{
+  project_id:string;title:string;summary?:string;opportunity_type?:"product"|"software"|"service"|"technology"|"industry"|"business_model"|"other";target_markets?:string[];
+}):Promise<ResearchOpportunityRecord> {
+  return await rpc<ResearchOpportunityRecord>("urania_research_create_opportunity",{
+    p_project_id:input.project_id,p_title:input.title,p_summary:input.summary||null,
+    p_opportunity_type:input.opportunity_type||"product",p_target_markets:input.target_markets||[]
+  },["admin","researcher"]);
+}
+export async function createResearchFinding(input:{
+  opportunity_id:string;stage:string;claim:string;explanation?:string;
+  finding_type?:"claim"|"observation"|"estimate"|"contradiction"|"gap";confidence?:number|null;
+}):Promise<Record<string,unknown>> {
+  return await rpc<Record<string,unknown>>("urania_research_create_finding",{
+    p_opportunity_id:input.opportunity_id,p_stage:input.stage,p_claim:input.claim,
+    p_explanation:input.explanation||null,p_finding_type:input.finding_type||"claim",p_confidence:input.confidence??null
+  },["admin","researcher"]);
+}
+export async function createResearchEvidenceSource(input:{
+  publisher:string;source_type:string;source_url?:string;title?:string;license_name?:string;license_scope?:string;retention_days?:number|null;
+}):Promise<Record<string,unknown>> {
+  return await rpc<Record<string,unknown>>("urania_research_create_evidence_source",{
+    p_publisher:input.publisher,p_source_type:input.source_type,p_source_url:input.source_url||null,
+    p_title:input.title||null,p_license_name:input.license_name||null,p_license_scope:input.license_scope||null,
+    p_retention_days:input.retention_days??null
+  },["admin","researcher"]);
+}
+export async function createResearchEvidence(input:{
+  opportunity_id:string;evidence_source_id:string;evidence_class:string;claim_supported:string;finding_id?:string|null;
+  metric_name?:string;metric_value?:number|null;metric_unit?:string;geography?:string;
+  published_at?:string|null;observed_at?:string|null;methodology?:string;raw_excerpt?:string;confidence?:number|null;
+}):Promise<Record<string,unknown>> {
+  return await rpc<Record<string,unknown>>("urania_research_create_evidence_record",{
+    p_opportunity_id:input.opportunity_id,p_evidence_source_id:input.evidence_source_id,
+    p_evidence_class:input.evidence_class,p_claim_supported:input.claim_supported,p_finding_id:input.finding_id||null,
+    p_metric_name:input.metric_name||null,p_metric_value:input.metric_value??null,p_metric_unit:input.metric_unit||null,
+    p_geography:input.geography||null,p_published_at:input.published_at||null,p_observed_at:input.observed_at||null,
+    p_methodology:input.methodology||null,p_raw_excerpt:input.raw_excerpt||null,p_confidence:input.confidence??null
+  },["admin","researcher"]);
+}
+export async function listResearchEvidence(opportunityId:string):Promise<ResearchEvidenceRecord[]> {
+  return await rpc<ResearchEvidenceRecord[]>("urania_research_list_evidence",{p_opportunity_id:opportunityId},["admin","researcher"]);
+}
