@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, InlineNotification, NumberInput, Select, SelectItem, TextArea, Tile } from "@carbon/react";
-import { listResearchAssumptions, saveResearchAssumption, type ResearchAssumptionRecord } from "../lib/api";
+import { Button, Checkbox, InlineNotification, NumberInput, Select, SelectItem, TextArea, Tile } from "@carbon/react";
+import { listResearchAssumptions, saveResearchAssumption, type ResearchAssumptionRecord, type ResearchEvidenceRecord } from "../lib/api";
 import { calculateMarketSizing, validateMarketSizingInputs, type MarketSizingInputs } from "../lib/market-sizing";
 
 const initial:MarketSizingInputs={
@@ -10,7 +10,7 @@ const initial:MarketSizingInputs={
  annualRevenuePerCustomer:8000,annualDeliveryCapacityCustomers:150
 };
 const money=(value:number,currency:string)=>new Intl.NumberFormat("en-US",{style:"currency",currency,maximumFractionDigits:0}).format(value);
-export default function MarketSizingPanel({opportunityId}:{opportunityId:string}){
+export default function MarketSizingPanel({opportunityId,evidence}:{opportunityId:string;evidence:ResearchEvidenceRecord[]}){
  const [inputs,setInputs]=useState<MarketSizingInputs>(initial);
  const [saving,setSaving]=useState(false);
  const [sourceNotes,setSourceNotes]=useState("");
@@ -18,11 +18,12 @@ export default function MarketSizingPanel({opportunityId}:{opportunityId:string}
  const [historyError,setHistoryError]=useState("");
  const [savedVersion,setSavedVersion]=useState<number|null>(null);
  const [history,setHistory]=useState<ResearchAssumptionRecord[]>([]);
- useEffect(()=>{setInputs(initial);setSourceNotes("");setSavedVersion(null);setHistoryError("");if(!opportunityId){setHistory([]);return;}void listResearchAssumptions(opportunityId).then(rows=>setHistory(rows.filter(r=>r.assumption_key==="market_sizing"))).catch(error=>setHistoryError(error instanceof Error?error.message:"无法读取市场规模版本历史。"));},[opportunityId]);
+ const [selectedEvidenceIds,setSelectedEvidenceIds]=useState<string[]>([]);
+ useEffect(()=>{setInputs(initial);setSourceNotes("");setSelectedEvidenceIds([]);setSavedVersion(null);setHistoryError("");if(!opportunityId){setHistory([]);return;}void listResearchAssumptions(opportunityId).then(rows=>setHistory(rows.filter(r=>r.assumption_key==="market_sizing"))).catch(error=>setHistoryError(error instanceof Error?error.message:"无法读取市场规模版本历史。"));},[opportunityId]);
  const update=<K extends keyof MarketSizingInputs>(key:K,value:MarketSizingInputs[K])=>setInputs(current=>({...current,[key]:value}));
  const errors=useMemo(()=>validateMarketSizingInputs(inputs),[inputs]);
  const result=useMemo(()=>{if(errors.length)return null;try{return calculateMarketSizing(inputs);}catch{return null;}},[inputs,errors]);
- const save=async()=>{if(!opportunityId||!result)return;setSaving(true);setSaveError("");try{const row=await saveResearchAssumption({opportunity_id:opportunityId,assumption_key:"market_sizing",assumption_value:{inputs,outputs:result,engine_version:"urania-market-sizing-v1"},rationale:sourceNotes.trim()||"双路径 TAM/SAM 核对与销售/交付能力约束 SOM；录入值需关联证据后方可验证。来源、年份、地域和口径尚未完整记录。",sensitivity:"high"});setSavedVersion(row.version);setHistory(await listResearchAssumptions(opportunityId).then(rows=>rows.filter(r=>r.assumption_key==="market_sizing")));}catch(error){setSaveError(error instanceof Error?error.message:"市场规模假设保存失败。");}finally{setSaving(false);}};
+ const save=async()=>{if(!opportunityId||!result)return;setSaving(true);setSaveError("");try{const row=await saveResearchAssumption({opportunity_id:opportunityId,assumption_key:"market_sizing",assumption_value:{inputs,outputs:result,engine_version:"urania-market-sizing-v1"},rationale:sourceNotes.trim()||"双路径 TAM/SAM 核对与销售/交付能力约束 SOM；录入值需关联证据后方可验证。来源、年份、地域和口径尚未完整记录。",sensitivity:"high",source_evidence_ids:selectedEvidenceIds});setSavedVersion(row.version);setHistory(await listResearchAssumptions(opportunityId).then(rows=>rows.filter(r=>r.assumption_key==="market_sizing")));}catch(error){setSaveError(error instanceof Error?error.message:"市场规模假设保存失败。");}finally{setSaving(false);}};
  return <Tile className="research-market-sizing">
   <h3>市场规模 · TAM / SAM / SOM</h3>
   <p className="panel-note">TAM/SAM 采用自上而下与自下而上双路径核对；SOM 根据销售获客、交付产能和可服务市场的最小约束计算，不使用 SAM 固定百分比。</p>
@@ -39,6 +40,7 @@ export default function MarketSizingPanel({opportunityId}:{opportunityId:string}
    <NumberInput id="market-arpc" label="每客户年收入" min={0} value={inputs.annualRevenuePerCustomer} onChange={(_,data)=>update("annualRevenuePerCustomer",Number(data.value))}/>
    <NumberInput id="market-capacity" label="年交付客户容量" min={0} value={inputs.annualDeliveryCapacityCustomers} onChange={(_,data)=>update("annualDeliveryCapacityCustomers",Number(data.value))}/>
   </div>
+  {evidence.length>0&&<div className="research-market-evidence-links"><strong>关联市场规模证据</strong>{evidence.map(item=><Checkbox key={item.id} id={"market-evidence-"+item.id} labelText={(item.publisher||"来源")+" · "+item.claim_supported.slice(0,100)} checked={selectedEvidenceIds.includes(item.id)} onChange={(_,data)=>setSelectedEvidenceIds(current=>data.checked?[...current,item.id]:current.filter(id=>id!==item.id))}/>)}</div>}
   <TextArea id="market-sizing-source-notes" labelText="来源、统计年份、地域、价格口径与数据限制" value={sourceNotes} onChange={e=>setSourceNotes(e.target.value)} rows={3} placeholder="记录两条测算路径各自的来源与口径；尚未核验的数据请明确标记为估计。"/>
   {errors.length>0&&<InlineNotification kind="error" lowContrast title="请修正输入" subtitle={errors.join(" ")} hideCloseButton/>}
   {saveError&&<InlineNotification kind="error" lowContrast title="保存失败" subtitle={saveError} hideCloseButton/>}
