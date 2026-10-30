@@ -24,12 +24,21 @@ export default function ResearchPortfolioWorkspace() {
   const [oppTitle,setOppTitle]=useState("");
   const [oppType,setOppType]=useState<"product"|"software"|"service"|"technology"|"industry"|"business_model"|"other">("product");
   const [publisher,setPublisher]=useState("");
+  const [sourceTitle,setSourceTitle]=useState("");
+  const [licenseScope,setLicenseScope]=useState("");
   const [sourceType,setSourceType]=useState("web");
   const [sourceUrl,setSourceUrl]=useState("");
   const [license,setLicense]=useState("");
   const [claim,setClaim]=useState("");
   const [evidenceClass,setEvidenceClass]=useState("proxy_indicator");
   const [methodology,setMethodology]=useState("");
+  const [metricName,setMetricName]=useState("");
+  const [metricValue,setMetricValue]=useState("");
+  const [metricUnit,setMetricUnit]=useState("");
+  const [evidenceGeography,setEvidenceGeography]=useState("");
+  const [publishedAt,setPublishedAt]=useState("");
+  const [observedAt,setObservedAt]=useState("");
+  const [evidenceConfidence,setEvidenceConfidence]=useState("");
   const [error,setError]=useState("");
   const [notice,setNotice]=useState("");
   const [busy,setBusy]=useState(false);
@@ -89,7 +98,7 @@ export default function ResearchPortfolioWorkspace() {
   }
   async function saveSource(e:FormEvent) {
     e.preventDefault();setBusy(true);setError("");setNotice("");
-    try {const row=await createResearchEvidenceSource({publisher,source_type:sourceType,source_url:sourceUrl||undefined,license_name:license||undefined});const id=String(row.id||"");setSourceId(id);setSourceIds(v=>[{id,label:publisher},...v.filter(x=>x.id!==id)]);setPublisher("");setSourceUrl("");setLicense("");setNotice("来源登记完成；接下来可将具体证据记录关联到该来源。");}
+    try {const row=await createResearchEvidenceSource({publisher,source_type:sourceType,source_url:sourceUrl||undefined,title:sourceTitle||undefined,license_name:license||undefined,license_scope:licenseScope||undefined});const id=String(row.id||"");setSourceId(id);setSourceIds(v=>[{id,label:publisher},...v.filter(x=>x.id!==id)]);setPublisher("");setSourceTitle("");setSourceUrl("");setLicense("");setLicenseScope("");setNotice("来源登记完成；接下来可将具体证据记录关联到该来源。");}
     catch(err){setError(err instanceof Error?err.message:"来源登记失败。");}finally{setBusy(false);}
   }
   async function saveFinding(e:FormEvent) {
@@ -129,7 +138,7 @@ export default function ResearchPortfolioWorkspace() {
   }
   async function saveEvidence(e:FormEvent) {
     e.preventDefault();if(!opportunityId||!sourceId)return;setBusy(true);setError("");setNotice("");
-    try {await createResearchEvidence({opportunity_id:opportunityId,evidence_source_id:sourceId,evidence_class:evidenceClass,claim_supported:claim,methodology:methodology||undefined});setClaim("");setMethodology("");await loadEvidence(opportunityId);setNotice("证据记录已保存，当前状态为未验证。");}
+    try {await createResearchEvidence({opportunity_id:opportunityId,evidence_source_id:sourceId,evidence_class:evidenceClass,claim_supported:claim,methodology:methodology||undefined,metric_name:metricName||undefined,metric_value:metricValue.trim()?Number(metricValue):null,metric_unit:metricUnit||undefined,geography:evidenceGeography||undefined,published_at:publishedAt||null,observed_at:observedAt||null,confidence:evidenceConfidence.trim()?Number(evidenceConfidence):null});setClaim("");setMethodology("");setMetricName("");setMetricValue("");setMetricUnit("");setEvidenceGeography("");setPublishedAt("");setObservedAt("");setEvidenceConfidence("");await loadEvidence(opportunityId);setNotice("证据记录已保存，当前状态为未验证。");}
     catch(err){setError(err instanceof Error?err.message:"保存证据失败。");}finally{setBusy(false);}
   }
   return <Tile className="panel research-portfolio-workspace">
@@ -174,11 +183,13 @@ export default function ResearchPortfolioWorkspace() {
         <h3>03 · 数据来源登记</h3>
         <form onSubmit={saveSource} className="research-portfolio-form">
           <TextInput id="research-source-publisher" labelText="发布者 / 机构" value={publisher} onChange={e=>setPublisher(e.target.value)} required/>
+          <TextInput id="research-source-title" labelText="来源标题" value={sourceTitle} onChange={e=>setSourceTitle(e.target.value)}/>
           <Select id="research-source-type" labelText="来源类型" value={sourceType} onChange={e=>setSourceType(e.target.value)}>
             <SelectItem value="transaction" text="交易数据"/><SelectItem value="government" text="政府数据"/><SelectItem value="industry_report" text="行业报告"/><SelectItem value="academic" text="学术研究"/><SelectItem value="web" text="网页"/><SelectItem value="interview" text="访谈"/><SelectItem value="survey" text="问卷"/><SelectItem value="supplier_document" text="供应商文件"/><SelectItem value="financial_filing" text="财报"/><SelectItem value="other" text="其他"/>
           </Select>
           <TextInput id="research-source-url" labelText="来源 URL（可选）" value={sourceUrl} onChange={e=>setSourceUrl(e.target.value)} placeholder="https://"/>
-          <TextInput id="research-source-license" labelText="许可 / 使用范围" value={license} onChange={e=>setLicense(e.target.value)}/>
+          <TextInput id="research-source-license" labelText="许可名称" value={license} onChange={e=>setLicense(e.target.value)}/>
+          <TextInput id="research-source-license-scope" labelText="许可范围 / 保存期限限制" value={licenseScope} onChange={e=>setLicenseScope(e.target.value)}/>
           <Button type="submit" size="sm" disabled={busy}>登记来源</Button>
         </form>
         {sourceId&&<p className="panel-note">最近登记来源：{sourceIds[0]?.label||"已登记"}</p>}
@@ -194,6 +205,13 @@ export default function ResearchPortfolioWorkspace() {
           </Select>
           <TextArea id="research-evidence-claim" labelText="该证据支持的具体主张" value={claim} onChange={e=>setClaim(e.target.value)} required rows={2}/>
           <TextArea id="research-evidence-method" labelText="方法、口径与限制" value={methodology} onChange={e=>setMethodology(e.target.value)} rows={2}/>
+          <TextInput id="research-evidence-metric" labelText="指标名称（可选）" value={metricName} onChange={e=>setMetricName(e.target.value)}/>
+          <TextInput id="research-evidence-value" labelText="指标数值" type="number" value={metricValue} onChange={e=>setMetricValue(e.target.value)}/>
+          <TextInput id="research-evidence-unit" labelText="指标单位" value={metricUnit} onChange={e=>setMetricUnit(e.target.value)}/>
+          <TextInput id="research-evidence-geography" labelText="地域 / 市场" value={evidenceGeography} onChange={e=>setEvidenceGeography(e.target.value)}/>
+          <TextInput id="research-evidence-published" labelText="发布日期" type="date" value={publishedAt} onChange={e=>setPublishedAt(e.target.value)}/>
+          <TextInput id="research-evidence-observed" labelText="观察日期" type="date" value={observedAt} onChange={e=>setObservedAt(e.target.value)}/>
+          <TextInput id="research-evidence-confidence" labelText="研究人员置信度（0–1）" type="number" min="0" max="1" step="0.05" value={evidenceConfidence} onChange={e=>setEvidenceConfidence(e.target.value)}/>
           <Button type="submit" size="sm" disabled={busy||!opportunityId||!sourceId}>保存证据</Button>
         </form>
       </section>
