@@ -497,3 +497,23 @@ export async function listResearchEvidence(opportunityId:string):Promise<Researc
 export async function listResearchEvidenceSources():Promise<Array<{id:string;publisher:string;source_type:string;source_url:string|null;title:string|null;license_name:string|null;license_scope:string|null;created_at:string}>> {
   return await rpc<Array<{id:string;publisher:string;source_type:string;source_url:string|null;title:string|null;license_name:string|null;license_scope:string|null;created_at:string}>>("urania_research_list_evidence_sources",{},["admin","researcher"]);
 }
+
+
+export type ResearchFinancialModelRecord = {
+  id:string;opportunity_id:string;model_version:number;currency:string;horizon_months:number;
+  inputs:Record<string,unknown>;outputs:Record<string,unknown>;calculation_engine_version:string;
+  status:string;calculated_at:string|null;created_at:string;
+};
+export async function saveResearchFinancialModel(input:{
+  opportunity_id:string;currency:string;horizon_months:number;inputs:Record<string,unknown>;
+  outputs:Record<string,unknown>;calculation_engine_version:string;assumptions_snapshot?:Record<string,unknown>;
+}):Promise<ResearchFinancialModelRecord>{
+  return await rpc<ResearchFinancialModelRecord>("urania_research_save_financial_model",{
+    p_opportunity_id:input.opportunity_id,p_currency:input.currency,p_horizon_months:input.horizon_months,
+    p_inputs:input.inputs,p_outputs:input.outputs,p_engine_version:input.calculation_engine_version,
+    p_assumptions_snapshot:input.assumptions_snapshot||{}
+  },["admin","researcher"]);
+}
+export async function listResearchFinancialModels(opportunityId:string):Promise<ResearchFinancialModelRecord[]>{
+  return await rpc<ResearchFinancialModelRecord[]>("urania_research_list_financial_models",{p_opportunity_id:opportunityId},["admin","researcher"]);
+}
