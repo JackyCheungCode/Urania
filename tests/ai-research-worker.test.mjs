@@ -27,6 +27,7 @@ test("AI research jobs call configured model and persist unverified findings",as
  assert.deepEqual(actions,["urania_worker_claim_job","urania_worker_get_provider","urania_worker_save_ai_research","urania_worker_update_job"]);
  const saved=requests.find(r=>r.body&&JSON.parse(r.body).action==="urania_worker_save_ai_research");
  const payload=JSON.parse(saved.body);
+ assert.equal(payload.p_job_id,"job-1");
  assert.equal(payload.p_requested_by,"user-1");
  assert.equal(payload.p_findings[0].stage,"demand");
  assert.equal(payload.p_findings[0].claim,"当前尚无一手客户付费证据。");
