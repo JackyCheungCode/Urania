@@ -1,0 +1,24 @@
+{
+  "name": "urania-queue-consumer-dev",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-29",
+  "workers_dev": true,
+  "observability": {
+    "enabled": true
+  },
+  "queues": {
+    "consumers": [
+      {
+        "queue": "urania-jobs-dev",
+        "max_batch_size": 5,
+        "max_batch_timeout": 5,
+        "max_retries": 3,
+        "dead_letter_queue": "urania-dlq-dev",
+        "retry_delay": 60
+      }
+    ]
+  },
+  "vars": {
+    "SUPABASE_URL": "https://ipdfojcphsqnokajpzch.supabase.co"
+  }
+}

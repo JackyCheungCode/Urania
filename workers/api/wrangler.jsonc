@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "urania-api-dev",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-29",
+  "workers_dev": true,
+  "vars": {
+    "SUPABASE_URL": "https://ipdfojcphsqnokajpzch.supabase.co",
+    "ALLOWED_ORIGINS": "http://localhost:5173,https://urania-preview.pages.dev"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "queues": {
+    "producers": [
+      {
+        "binding": "URANIA_JOBS",
+        "queue": "urania-jobs-dev"
+      }
+    ]
+  }
+}
