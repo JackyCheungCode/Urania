@@ -20,7 +20,7 @@ Risks are recorded independently of commercial scoring. An active hard-veto risk
 
 ## AI research execution
 
-The queue consumer now supports server-side OpenAI, Anthropic and Gemini analysis adapters. Provider credentials are resolved from Supabase Vault through the internal worker RPC and are never sent to the browser. AI jobs require an active provider and explicit authorization approval. Generated findings are persisted with model/prompt metadata and always start as `evidence_status=insufficient`; the adapter prompt prohibits fabricated sources and observed facts. This release analyzes the supplied question/context only; it does not yet automatically browse the web or transform search results into linked evidence records. A separate search collection job and human evidence review remain necessary.
+The queue consumer now supports server-side OpenAI, Anthropic and Gemini analysis adapters. Provider credentials are resolved from Supabase Vault through the internal worker RPC and are never sent to the browser. AI jobs require an active provider and explicit authorization approval. Generated findings are persisted with model/prompt metadata and always start as `evidence_status=insufficient`; the adapter prompt prohibits fabricated sources and observed facts. A SerpApi-backed web search job can be scoped to an opportunity; search results are retrieved through an owner-scoped RPC and can be imported manually as `proxy_indicator` evidence. Search snippets are not proof of sales, customer demand or market size. AI analysis still consumes the supplied question/context; it does not automatically ingest search results or invent citations. Human evidence review remains necessary.
 
 ## Decision scoring and audit
 
