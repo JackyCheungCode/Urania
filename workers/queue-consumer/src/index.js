@@ -101,7 +101,7 @@ async function processAIResearch(env,job,providerKey,provider,started) {
   const output=parseResearchOutput(answer.content);
   const saved=await rpc(env,"urania_worker_save_ai_research",{
     p_job_id:job.job_id,p_opportunity_id:job.input_payload.opportunity_id,p_requested_by:job.requested_by,
-    p_provider_key:providerKey,p_model_name:answer.model,p_prompt_version:"urania-research-prompt-v1",
+    p_provider_key:providerKey,p_model_name:answer.model,p_prompt_version:"urania-research-prompt-v2",
     p_input_scope:{query:job.input_payload.query,stage:job.input_payload.stage||"discovery",context_included:Boolean(job.input_payload.context)},
     p_output_summary:{summary:output.summary,generated_findings:output.findings.length,latency_ms:Date.now()-started},
     p_findings:output.findings
