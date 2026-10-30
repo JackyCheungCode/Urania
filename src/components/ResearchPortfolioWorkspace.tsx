@@ -196,7 +196,7 @@ export default function ResearchPortfolioWorkspace() {
         </form>
         <div className="research-portfolio-list">{findings.map(f=><div key={f.id} className="research-portfolio-row"><strong>{f.claim}</strong><span>{f.stage} · {f.finding_type} · {f.evidence_status}</span></div>)}{findings.length===0&&<p className="muted">尚无阶段结论。</p>}</div>
       </section>
-      <MarketSizingPanel />
+      <MarketSizingPanel opportunityId={opportunityId} />
       <InvestmentModelPanel opportunityId={opportunityId} />
     </div>
     {risks.some(r=>r.hard_veto&&["open","mitigating"].includes(r.status))&&<InlineNotification kind="error" lowContrast title="存在未解除的硬性否决风险" subtitle="当前机会不得进入投资批准；必须先完成风险核验并由授权人员关闭风险。" hideCloseButton/>}
