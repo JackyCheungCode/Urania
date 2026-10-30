@@ -154,7 +154,7 @@ export default function ResearchPortfolioWorkspace() {
           <Button type="submit" size="sm" disabled={busy||!opportunityId}>保存阶段结论</Button>
         </form>
       </section>
-      <InvestmentModelPanel />
+      <InvestmentModelPanel opportunityId={opportunityId} />
     </div>
     <section className="research-portfolio-evidence">
       <h3>证据时间线 <span className="muted">· {evidence.length} 条</span></h3>
