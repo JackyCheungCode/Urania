@@ -80,15 +80,17 @@ export function calculateInvestmentCase(input: InvestmentInputs, scenario: Finan
     const tax = Math.max(0, operatingProfit) * input.taxRate;
     const cash = operatingProfit - tax;
     revenueTotal += revenue; grossProfitTotal += grossProfit; operatingProfitTotal += operatingProfit; taxTotal += tax;
-    cashFlows.push(cash);
+    operatingCashFlows.push(cash);
+    const distributableCash = cash + (year === years ? input.workingCapital : 0);
+    cashFlows.push(distributableCash);
     const prior = cumulative;
     cumulative += cash;
     if (paybackMonths === null && prior < 0 && cumulative >= 0 && cash > 0) {
       paybackMonths = (year - 1) * 12 + (-prior / cash) * months;
     }
   }
-  const endingCashFlow = cashFlows.reduce((a, b) => a + b, 0) + input.workingCapital;
-  const netOperatingCash = cashFlows.slice(1).reduce((a, b) => a + b, 0);
+  const endingCashFlow = cashFlows.reduce((a, b) => a + b, 0);
+  const netOperatingCash = operatingCashFlows.reduce((a, b) => a + b, 0);
   return {
     revenue: revenueTotal, grossProfit: grossProfitTotal, operatingProfit: operatingProfitTotal, tax: taxTotal,
     netOperatingCash, endingCashFlow, roi: initialOutflow > 0 ? endingCashFlow / initialOutflow * 100 : 0,
