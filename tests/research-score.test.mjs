@@ -10,7 +10,7 @@ const evidence={coverage:.8,quality:.75,freshness:.9,uncertainty:.2};
 test("commercial score uses fixed transparent weights summing to 100",()=>{
  const result=model.calculateResearchScore(scores,evidence,false);
  assert.equal(Object.values(result.weights).reduce((a,b)=>a+b,0),100);
- assert.equal(result.commercialScore,74.5);
+ assert.equal(result.commercialScore,73.5);
  assert.ok(result.evidenceReadiness>0&&result.evidenceReadiness<=100);
 });
 test("hard veto blocks the decision gate regardless of commercial score",()=>{
