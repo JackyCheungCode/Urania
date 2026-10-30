@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { Button as CarbonButton, InlineNotification, PasswordInput, TextInput, TextArea, Checkbox, Select, SelectItem, Table as CarbonTable, TableHead, TableRow, TableHeader, TableBody, TableCell, Tile, Grid, Column, SideNav, SideNavItems, SideNavLink, Modal } from "@carbon/react";
+import { Button as CarbonButton, InlineNotification, PasswordInput, TextInput, TextArea, Checkbox, Select, SelectItem, Table as CarbonTable, TableHead, TableRow, TableHeader, TableBody, TableCell, Tile, Grid, Column, SideNav, SideNavItems, SideNavLink, Modal, Header as CarbonHeader } from "@carbon/react";
 import { supabase } from "./lib/supabase";
 import CRMExtras from "./components/CRMExtras";
 import ProfitCalculator from "./components/ProfitCalculator";
@@ -176,7 +176,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => Promise<void> }) {
     </SideNav>
 
     <main className="main-area">
-      <header className="topbar">
+      <CarbonHeader aria-label="Urania workspace header" className="topbar">
         <CarbonButton className="icon-button mobile-menu" aria-label="打开菜单" onClick={() => setMobileNav(true)}><Menu size={19} /></CarbonButton>
         <div className="breadcrumbs"><span>Urania</span><span className="crumb-slash">/</span><strong>{current.title}</strong></div>
         <div className="topbar-actions">
@@ -190,7 +190,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => Promise<void> }) {
           <div className="topbar-divider" />
           <CarbonButton className="help-button" onClick={() => toast("帮助中心将在后续版本开放")}><CircleHelp size={17} /><span>帮助</span></CarbonButton>
         </div>
-      </header>
+      </CarbonHeader>
 
       <Grid fullWidth className="carbon-page-grid"><Column sm={4} md={8} lg={16}><div className="page-content">
         <div className="page-heading">
