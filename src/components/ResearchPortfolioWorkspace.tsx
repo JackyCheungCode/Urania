@@ -159,6 +159,7 @@ export default function ResearchPortfolioWorkspace() {
   return <Tile className="panel research-portfolio-workspace">
     <div className="section-title"><h2>投资研究项目与证据库</h2><span className="muted">真实数据库 · 人工验证</span></div>
     <p className="panel-note">项目、机会、来源和证据均按账号归属隔离。登记来源不代表数据已核验；代理指标、观察数据与模型估计分别标记。</p>
+    <p className="panel-note">当前机会审计事件：{auditEvents.length} 条。</p>
     {error&&<InlineNotification kind="error" lowContrast title="操作未完成" subtitle={error} onCloseButtonClick={()=>setError("")}/>}
     {notice&&<InlineNotification kind="success" lowContrast title="已保存" subtitle={notice} onCloseButtonClick={()=>setNotice("")}/>}
     <div className="research-portfolio-grid">
