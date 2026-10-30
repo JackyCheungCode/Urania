@@ -44,17 +44,17 @@ export function validateInvestmentInputs(input: InvestmentInputs): string[] {
   return errors;
 }
 
-function npv(rate: number, flows: number[]): number {
-  return flows.reduce((sum, flow, period) => sum + flow / Math.pow(1 + rate, period), 0);
+function npv(rate: number, flows: number[], periods: number[] = flows.map((_, index) => index)): number {
+  return flows.reduce((sum, flow, index) => sum + flow / Math.pow(1 + rate, periods[index] ?? index), 0);
 }
 
-function irr(flows: number[]): number | null {
+function irr(flows: number[], periods: number[]): number | null {
   let low = -0.9999, high = 10;
-  let lowValue = npv(low, flows), highValue = npv(high, flows);
+  let lowValue = npv(low, flows, periods), highValue = npv(high, flows, periods);
   if (!Number.isFinite(lowValue) || !Number.isFinite(highValue) || lowValue * highValue > 0) return null;
   for (let i = 0; i < 160; i++) {
     const mid = (low + high) / 2;
-    const value = npv(mid, flows);
+    const value = npv(mid, flows, periods);
     if (Math.abs(value) < 1e-8) return mid;
     if (value * lowValue > 0) { low = mid; lowValue = value; }
     else { high = mid; highValue = value; }
@@ -67,6 +67,7 @@ export function calculateInvestmentCase(input: InvestmentInputs, scenario: Finan
   const years = Math.ceil(input.horizonMonths / 12);
   const initialOutflow = input.initialInvestment + input.workingCapital;
   const cashFlows = [-initialOutflow];
+  const cashFlowPeriods = [0];
   const operatingCashFlows: number[] = [];
   let revenueTotal = 0, grossProfitTotal = 0, operatingProfitTotal = 0, taxTotal = 0;
   let cumulative = -initialOutflow, paybackMonths: number | null = null;
@@ -83,6 +84,7 @@ export function calculateInvestmentCase(input: InvestmentInputs, scenario: Finan
     operatingCashFlows.push(cash);
     const distributableCash = cash + (year === years ? input.workingCapital : 0);
     cashFlows.push(distributableCash);
+    cashFlowPeriods.push(year === years ? input.horizonMonths / 12 : year);
     const prior = cumulative;
     cumulative += cash;
     if (paybackMonths === null && prior < 0 && cumulative >= 0 && cash > 0) {
@@ -94,7 +96,7 @@ export function calculateInvestmentCase(input: InvestmentInputs, scenario: Finan
   return {
     revenue: revenueTotal, grossProfit: grossProfitTotal, operatingProfit: operatingProfitTotal, tax: taxTotal,
     netOperatingCash, endingCashFlow, roi: initialOutflow > 0 ? endingCashFlow / initialOutflow * 100 : 0,
-    npv: npv(Math.pow(1 + input.discountRate, 1) - 1, cashFlows),
-    irr: irr(cashFlows), paybackMonths, cashFlows
+    npv: npv(input.discountRate, cashFlows, cashFlowPeriods),
+    irr: irr(cashFlows, cashFlowPeriods), paybackMonths, cashFlows
   };
 }
