@@ -254,9 +254,9 @@ export default function ResearchPortfolioWorkspace() {
         <p className="panel-note">AI 仅生成待核验研究结论，不会自动产生事实证据、来源引用或投资批准。请先在集成中心配置 API 密钥，并将供应商状态与授权审核设为有效。</p>
         <form onSubmit={queueAIResearch} className="research-portfolio-form">
           <Select id="research-ai-provider" labelText="研究模型" value={aiProvider} onChange={e=>setAiProvider(e.target.value as "openai_api"|"anthropic_api"|"google_gemini_api")}><SelectItem value="openai_api" text="OpenAI（主研究引擎）"/><SelectItem value="anthropic_api" text="Claude（独立复核）"/><SelectItem value="google_gemini_api" text="Gemini（补充分析）"/></Select>
-          <TextArea id="research-ai-query" labelText="研究问题" value={aiQuery} onChange={e=>setAiQuery(e.target.value)} required rows={2}/>
-          <TextArea id="research-ai-context" labelText="已掌握的背景资料（可选；不要粘贴秘密或个人敏感数据）" value={aiContext} onChange={e=>setAiContext(e.target.value)} rows={3}/>
-          <Button type="submit" size="sm" disabled={busy||!opportunityId||aiQuery.trim().length<5}>提交 AI 研究任务</Button>
+          <TextArea id="research-ai-query" labelText="研究问题" value={aiQuery} onChange={e=>setAiQuery(e.target.value)} maxLength={500} required rows={2}/>
+          <TextArea id="research-ai-context" labelText="已掌握的背景资料（可选；不要粘贴秘密或个人敏感数据）" value={aiContext} onChange={e=>setAiContext(e.target.value)} maxLength={12000} rows={3}/>
+          <Button type="submit" size="sm" disabled={busy||!opportunityId||aiQuery.trim().length<5||aiQuery.trim().length>500}>提交 AI 研究任务</Button>
         </form>
       </section>
       <InvestmentModelPanel opportunityId={opportunityId} />
