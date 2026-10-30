@@ -1,7 +1,7 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { InlineNotification, Select, SelectItem, TextInput, Tile } from "@carbon/react";
 import { calculateInvestmentCase, validateInvestmentInputs, type InvestmentInputs } from "../lib/investment-model";
-import { saveResearchFinancialModel } from "../lib/api";
+import { listResearchFinancialModels, saveResearchFinancialModel, type ResearchFinancialModelRecord } from "../lib/api";
 
 const initial: InvestmentInputs = { currency: "USD", horizonMonths: 36, initialInvestment: 150000, workingCapital: 30000, yearOneRevenue: 240000, annualGrowthRate: 0.2, grossMarginRate: 0.42, operatingExpenseRate: 0.18, fixedMonthlyCost: 5000, taxRate: 0.2, discountRate: 0.15 };
 const money = (value: number, currency: string) => new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(value);
@@ -12,6 +12,9 @@ export default function InvestmentModelPanel({ opportunityId }: { opportunityId:
   const [saving,setSaving]=useState(false);
   const [saveError,setSaveError]=useState("");
   const [savedVersion,setSavedVersion]=useState<number|null>(null);
+  const [versions,setVersions]=useState<ResearchFinancialModelRecord[]>([]);
+  const [historyError,setHistoryError]=useState("");
+  useEffect(()=>{if(!opportunityId){setVersions([]);return;}void listResearchFinancialModels(opportunityId).then(setVersions).catch(error=>setHistoryError(error instanceof Error?error.message:"无法读取模型历史。"));},[opportunityId]);
   const errors = useMemo(() => validateInvestmentInputs(inputs), [inputs]);
   const results = useMemo(() => errors.length ? null : ({
     downside: calculateInvestmentCase(inputs, "downside"),
@@ -21,7 +24,7 @@ export default function InvestmentModelPanel({ opportunityId }: { opportunityId:
   function update<K extends keyof InvestmentInputs>(key: K, value: InvestmentInputs[K]) {
     setInputs(current => ({ ...current, [key]: value }));
   }
-  async function submit(event: FormEvent) { event.preventDefault(); setTouched(true); setSaveError("");setSavedVersion(null);if(errors.length||!results||!opportunityId)return;setSaving(true);try{const saved=await saveResearchFinancialModel({opportunity_id:opportunityId,currency:inputs.currency,horizon_months:inputs.horizonMonths,inputs:inputs as unknown as Record<string,unknown>,outputs:results as unknown as Record<string,unknown>,calculation_engine_version:"urania-investment-v1.0",assumptions_snapshot:{source:"user_entered_assumptions",scenario_method:"deterministic_v1"}});setSavedVersion(saved.model_version);}catch(error){setSaveError(error instanceof Error?error.message:"财务模型保存失败。");}finally{setSaving(false);}}
+  async function submit(event: FormEvent) { event.preventDefault(); setTouched(true); setSaveError("");setSavedVersion(null);if(errors.length||!results||!opportunityId)return;setSaving(true);try{const saved=await saveResearchFinancialModel({opportunity_id:opportunityId,currency:inputs.currency,horizon_months:inputs.horizonMonths,inputs:inputs as unknown as Record<string,unknown>,outputs:results as unknown as Record<string,unknown>,calculation_engine_version:"urania-investment-v1.0",assumptions_snapshot:{source:"user_entered_assumptions",scenario_method:"deterministic_v1"}});setSavedVersion(saved.model_version);setVersions(await listResearchFinancialModels(opportunityId));}catch(error){setSaveError(error instanceof Error?error.message:"财务模型保存失败。");}finally{setSaving(false);}}
   const fields: Array<{key: Exclude<keyof InvestmentInputs, "currency">; label: string; rate?: boolean; step?: string}> = [
     {key:"horizonMonths",label:"测算周期（月）",step:"1"},
     {key:"initialInvestment",label:"初始投资额"},{key:"workingCapital",label:"营运资金"},
@@ -44,6 +47,8 @@ export default function InvestmentModelPanel({ opportunityId }: { opportunityId:
     </form>
     {saveError&&<InlineNotification kind="error" lowContrast title="保存失败" subtitle={saveError} hideCloseButton/>}
     {savedVersion!==null&&<InlineNotification kind="success" lowContrast title="财务模型已保存" subtitle={`已创建第 ${savedVersion} 个不可覆盖的模型版本。`} hideCloseButton/>}
+    {historyError&&<InlineNotification kind="error" lowContrast title="模型历史读取失败" subtitle={historyError} hideCloseButton/>}
+    {versions.length>0&&<div className="research-model-history"><strong>已保存模型版本</strong>{versions.map(v=><div key={v.id}><span>v{v.model_version} · {v.status} · {v.calculation_engine_version}</span><small>{v.calculated_at?new Date(v.calculated_at).toLocaleString():"未记录计算时间"}</small></div>)}</div>}
     {errors.length>0&&<InlineNotification kind="error" lowContrast title="输入需要修正" subtitle={errors.join(" ")} hideCloseButton/>}
     {touched&&errors.length===0&&<InlineNotification kind="success" lowContrast title="模型校验通过" subtitle="已按当前假设完成三种情景的确定性复算。" hideCloseButton/>}
     {results&&<div className="research-scenario-grid">
