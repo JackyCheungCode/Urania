@@ -4,7 +4,7 @@ import MarketSizingPanel from "./MarketSizingPanel";
 import { Button, Checkbox, InlineNotification, Select, SelectItem, TextArea, TextInput, Tile } from "@carbon/react";
 import {
   createResearchProject, listResearchProjects, createResearchOpportunity, listResearchOpportunities,
-  createResearchEvidenceSource, createResearchEvidence, listResearchEvidence, listResearchEvidenceSources, createResearchFinding, createResearchRisk, listResearchRisks, verifyResearchEvidence, type ResearchRiskRecord, listResearchFindings, type ResearchFindingRecord, submitResearchDecision, approveResearchDecision, listResearchDecisions, type ResearchDecisionRecord, reviewResearchRisk,
+  createResearchEvidenceSource, createResearchEvidence, listResearchEvidence, listResearchEvidenceSources, createResearchFinding, createResearchRisk, listResearchRisks, verifyResearchEvidence, type ResearchRiskRecord, listResearchFindings, type ResearchFindingRecord, submitResearchDecision, approveResearchDecision, listResearchDecisions, type ResearchDecisionRecord, reviewResearchRisk, createAIResearchJob,
   type ResearchProjectRecord, type ResearchOpportunityRecord, type ResearchEvidenceRecord
 } from "../lib/api";
 
@@ -49,6 +49,9 @@ export default function ResearchPortfolioWorkspace() {
   const [decisions,setDecisions]=useState<ResearchDecisionRecord[]>([]);
   const [decisionChoice,setDecisionChoice]=useState<"invest"|"validate_more"|"defer"|"reject">("validate_more");
   const [decisionRationale,setDecisionRationale]=useState("");
+  const [aiProvider,setAiProvider]=useState<"openai_api"|"anthropic_api"|"google_gemini_api">("openai_api");
+  const [aiQuery,setAiQuery]=useState("");
+  const [aiContext,setAiContext]=useState("");
 
   async function loadProjects() {
     const rows=await listResearchProjects();setProjects(rows);
@@ -91,6 +94,11 @@ export default function ResearchPortfolioWorkspace() {
     if(riskReviewNote.trim().length<8)return;setBusy(true);setError("");setNotice("");
     try {await reviewResearchRisk({risk_id:id,status:riskReviewStatus,note:riskReviewNote});setRiskReviewNote("");if(opportunityId)setRisks(await listResearchRisks(opportunityId));setNotice("风险状态已更新，审查说明已写入审计历史。");}
     catch(err){setError(err instanceof Error?err.message:"风险审查失败；请确认管理员权限。");}finally{setBusy(false);}
+  }
+  async function queueAIResearch(e:FormEvent) {
+    e.preventDefault();if(!opportunityId)return;setBusy(true);setError("");setNotice("");
+    try {const job=await createAIResearchJob({opportunity_id:opportunityId,query:aiQuery,stage:findingStage,context:aiContext,provider_key:aiProvider,idempotency_key:crypto.randomUUID()});setAiQuery("");setAiContext("");setNotice("AI 研究任务已加入队列（"+job.id+"）。输出会保存为证据不足的模型生成结论，必须人工补充证据与核验。");}
+    catch(err){setError(err instanceof Error?err.message:"AI 研究任务提交失败；请检查供应商凭证、授权状态和队列配置。");}finally{setBusy(false);}
   }
   async function submitDecision(e:FormEvent) {
     e.preventDefault();if(!opportunityId)return;setBusy(true);setError("");setNotice("");
@@ -197,6 +205,16 @@ export default function ResearchPortfolioWorkspace() {
         <div className="research-portfolio-list">{findings.map(f=><div key={f.id} className="research-portfolio-row"><strong>{f.claim}</strong><span>{f.stage} · {f.finding_type} · {f.evidence_status}</span></div>)}{findings.length===0&&<p className="muted">尚无阶段结论。</p>}</div>
       </section>
       <MarketSizingPanel opportunityId={opportunityId} />
+      <section className="research-portfolio-section">
+        <h3>05A · AI 研究任务</h3>
+        <p className="panel-note">AI 仅生成待核验研究结论，不会自动产生事实证据、来源引用或投资批准。请先在集成中心配置 API 密钥，并将供应商状态与授权审核设为有效。</p>
+        <form onSubmit={queueAIResearch} className="research-portfolio-form">
+          <Select id="research-ai-provider" labelText="研究模型" value={aiProvider} onChange={e=>setAiProvider(e.target.value as "openai_api"|"anthropic_api"|"google_gemini_api")}><SelectItem value="openai_api" text="OpenAI（主研究引擎）"/><SelectItem value="anthropic_api" text="Claude（独立复核）"/><SelectItem value="google_gemini_api" text="Gemini（补充分析）"/></Select>
+          <TextArea id="research-ai-query" labelText="研究问题" value={aiQuery} onChange={e=>setAiQuery(e.target.value)} required rows={2}/>
+          <TextArea id="research-ai-context" labelText="已掌握的背景资料（可选；不要粘贴秘密或个人敏感数据）" value={aiContext} onChange={e=>setAiContext(e.target.value)} rows={3}/>
+          <Button type="submit" size="sm" disabled={busy||!opportunityId||aiQuery.trim().length<5}>提交 AI 研究任务</Button>
+        </form>
+      </section>
       <InvestmentModelPanel opportunityId={opportunityId} />
     </div>
     {risks.some(r=>r.hard_veto&&["open","mitigating"].includes(r.status))&&<InlineNotification kind="error" lowContrast title="存在未解除的硬性否决风险" subtitle="当前机会不得进入投资批准；必须先完成风险核验并由授权人员关闭风险。" hideCloseButton/>}
