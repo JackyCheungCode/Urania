@@ -13,7 +13,9 @@ begin
  if p_job_id is null then raise exception 'job_id_required' using errcode='22023'; end if;
  perform pg_advisory_xact_lock(hashtextextended(p_job_id::text,0));
  select * into v_run from research.research_runs where run_type='ai_research_analysis' and input_scope->>'queue_job_id'=p_job_id::text limit 1;
- if found then return jsonb_build_object('research_run_id',v_run.id,'status',v_run.status,'finding_count',(select count(*) from research.research_findings where research_run_id=v_run.id),'evidence_status','insufficient','model_provider',v_run.model_provider,'model_name',v_run.model_name,'idempotent_replay',true); end if;
+ if found then
+  if v_run.created_by<>p_requested_by or v_run.opportunity_id<>p_opportunity_id then raise exception 'job_replay_scope_mismatch' using errcode='42501'; end if;
+  return jsonb_build_object('research_run_id',v_run.id,'status',v_run.status,'finding_count',(select count(*) from research.research_findings where research_run_id=v_run.id),'evidence_status','insufficient','model_provider',v_run.model_provider,'model_name',v_run.model_name,'idempotent_replay',true); end if;
  if jsonb_typeof(coalesce(p_findings,'[]'::jsonb))<>'array' or jsonb_array_length(coalesce(p_findings,'[]'::jsonb))>20 then
   raise exception 'invalid_findings_array' using errcode='22023';
  end if;
