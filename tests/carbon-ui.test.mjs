@@ -29,7 +29,7 @@ test("the application bootstraps Carbon styles and a supported Carbon theme", as
 
 test("global shell uses Carbon layout, navigation, tiles and modal primitives", async () => {
   const app = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
-  for (const component of ["Grid", "Column", "Tile", "SideNav", "SideNavItems", "SideNavLink", "Modal"]) {
+  for (const component of ["Grid", "Column", "Tile", "SideNav", "SideNavItems", "SideNavLink", "Modal", "CarbonHeader"]) {
     assert.match(app, new RegExp("<" + component + "\\b"), `App.tsx must compose ${component}`);
   }
   assert.doesNotMatch(app, /provider-modal-backdrop|role="dialog" aria-modal="true"/, "credential dialog must use Carbon Modal");
