@@ -4,7 +4,7 @@ import MarketSizingPanel from "./MarketSizingPanel";
 import { Button, Checkbox, InlineNotification, Select, SelectItem, TextArea, TextInput, Tile } from "@carbon/react";
 import {
   createResearchProject, listResearchProjects, createResearchOpportunity, listResearchOpportunities,
-  createResearchEvidenceSource, createResearchEvidence, listResearchEvidence, listResearchEvidenceSources, createResearchFinding, createResearchRisk, listResearchRisks, verifyResearchEvidence, type ResearchRiskRecord, listResearchFindings, type ResearchFindingRecord, submitResearchDecision, approveResearchDecision, listResearchDecisions, type ResearchDecisionRecord,
+  createResearchEvidenceSource, createResearchEvidence, listResearchEvidence, listResearchEvidenceSources, createResearchFinding, createResearchRisk, listResearchRisks, verifyResearchEvidence, type ResearchRiskRecord, listResearchFindings, type ResearchFindingRecord, submitResearchDecision, approveResearchDecision, listResearchDecisions, type ResearchDecisionRecord, reviewResearchRisk,
   type ResearchProjectRecord, type ResearchOpportunityRecord, type ResearchEvidenceRecord
 } from "../lib/api";
 
@@ -42,6 +42,8 @@ export default function ResearchPortfolioWorkspace() {
   const [riskDescription,setRiskDescription]=useState("");
   const [riskMitigation,setRiskMitigation]=useState("");
   const [riskVeto,setRiskVeto]=useState(false);
+  const [riskReviewStatus,setRiskReviewStatus]=useState<"open"|"mitigating"|"accepted"|"resolved"|"false_positive">("resolved");
+  const [riskReviewNote,setRiskReviewNote]=useState("");
   const [verificationStatus,setVerificationStatus]=useState<"human_verified"|"disputed"|"rejected">("human_verified");
   const [verificationNote,setVerificationNote]=useState("");
   const [decisions,setDecisions]=useState<ResearchDecisionRecord[]>([]);
@@ -84,6 +86,11 @@ export default function ResearchPortfolioWorkspace() {
     e.preventDefault();if(!opportunityId)return;setBusy(true);setError("");setNotice("");
     try {await createResearchFinding({opportunity_id:opportunityId,stage:findingStage,claim:findingClaim,explanation:findingExplanation||undefined,finding_type:findingType as "claim"|"observation"|"estimate"|"contradiction"|"gap"});setFindings(await listResearchFindings(opportunityId));setFindingClaim("");setFindingExplanation("");setNotice("研究阶段结论已保存；未关联证据的结论仍保持证据不足。");}
     catch(err){setError(err instanceof Error?err.message:"保存研究结论失败。");}finally{setBusy(false);}
+  }
+  async function reviewRisk(id:string) {
+    if(riskReviewNote.trim().length<8)return;setBusy(true);setError("");setNotice("");
+    try {await reviewResearchRisk({risk_id:id,status:riskReviewStatus,note:riskReviewNote});setRiskReviewNote("");if(opportunityId)setRisks(await listResearchRisks(opportunityId));setNotice("风险状态已更新，审查说明已写入审计历史。");}
+    catch(err){setError(err instanceof Error?err.message:"风险审查失败；请确认管理员权限。");}finally{setBusy(false);}
   }
   async function submitDecision(e:FormEvent) {
     e.preventDefault();if(!opportunityId)return;setBusy(true);setError("");setNotice("");
@@ -206,7 +213,7 @@ export default function ResearchPortfolioWorkspace() {
           <Checkbox id="research-risk-veto" labelText="设为硬性否决项（未解除前不得批准投资）" checked={riskVeto} onChange={(_,data)=>setRiskVeto(data.checked)}/>
           <Button type="submit" size="sm" disabled={busy||!opportunityId}>登记风险</Button>
         </form>
-        <div className="research-portfolio-list">{risks.map(r=><div key={r.id} className="research-portfolio-row"><strong>{r.description}</strong><span>{r.risk_category} · {r.severity} · {r.status} {r.hard_veto?" · 硬性否决":""}</span></div>)}{risks.length===0&&<p className="muted">当前机会尚无风险记录。</p>}</div>
+        <div className="research-portfolio-list">{risks.map(r=><div key={r.id} className="research-portfolio-row"><strong>{r.description}</strong><span>{r.risk_category} · {r.severity} · {r.status} {r.hard_veto?" · 硬性否决":""}</span><div className="research-risk-review"><Select id={`risk-review-${r.id}`} labelText="管理员复核状态" value={riskReviewStatus} onChange={e=>setRiskReviewStatus(e.target.value as "open"|"mitigating"|"accepted"|"resolved"|"false_positive")}><SelectItem value="open" text="重新打开"/><SelectItem value="mitigating" text="缓解中"/><SelectItem value="accepted" text="接受风险"/><SelectItem value="resolved" text="已解决"/><SelectItem value="false_positive" text="误报"/></Select><TextInput id={`risk-review-note-${r.id}`} labelText="复核说明（至少 8 字）" value={riskReviewNote} onChange={e=>setRiskReviewNote(e.target.value)}/><Button size="sm" kind="tertiary" disabled={busy||riskReviewNote.trim().length<8} onClick={()=>void reviewRisk(r.id)}>管理员复核</Button></div></div>)}{risks.length===0&&<p className="muted">当前机会尚无风险记录。</p>}</div>
       </section>
     </div>
     <div className="research-portfolio-grid">
