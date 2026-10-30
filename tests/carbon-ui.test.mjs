@@ -43,7 +43,7 @@ test("business workspaces compose Carbon Tile surfaces and Grid/Column layouts",
   }
   assert.match(app, /function CarbonLayoutGrid[\\s\\S]*<Grid fullWidth[\\s\\S]*<Column/, "business layouts must use Carbon Grid and Column composition");
   assert.ok((app.match(/<Tile\\b/g) || []).length >= 10, "business panels must use Carbon Tile");
-  for (const layout of ["metric-grid", "crm-metrics", "dashboard-grid", "lower-grid", "research-cards", "intelligence-grid", "integration-summary", "settings-grid"]) {
+  for (const layout of ["metric-grid", "crm-metrics", "dashboard-grid", "lower-grid", "research-cards", "intelligence-grid", "integration-summary", "settings-grid", "evidence-grid"]) {
     assert.match(app, new RegExp(`<CarbonLayoutGrid className="[^"]*\\b${layout}\\b`), `${layout} must use the shared Carbon grid`);
   }
   assert.match(app, /<OverflowMenu\\b[\\s\\S]*<OverflowMenuItem/, "workspace actions must use Carbon menu primitives");
