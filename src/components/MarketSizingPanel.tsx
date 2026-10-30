@@ -26,16 +26,16 @@ export default function MarketSizingPanel({opportunityId}:{opportunityId:string}
   <p className="panel-note">TAM/SAM 采用自上而下与自下而上双路径核对；SOM 根据销售获客、交付产能和可服务市场的最小约束计算，不使用 SAM 固定百分比。</p>
   <div className="research-market-input-grid">
    <Select id="market-sizing-currency" labelText="报告币种" value={inputs.currency} onChange={e=>update("currency",e.target.value)}><SelectItem value="USD" text="USD"/><SelectItem value="EUR" text="EUR"/><SelectItem value="GBP" text="GBP"/><SelectItem value="TWD" text="TWD"/><SelectItem value="JPY" text="JPY"/></Select>
-   <NumberInput id="market-topdown-tam" label="自上而下总市场 TAM" min={0} step={1000000} value={inputs.topDownTotalMarket} onChange={(_,data)=>update("topDownTotalMarket",data.value)}/>
-   <NumberInput id="market-topdown-share" label="可服务市场占比 (0–1)" min={0} max={1} step={.01} value={inputs.topDownAddressableShare} onChange={(_,data)=>update("topDownAddressableShare",data.value)}/>
-   <NumberInput id="market-bottomup-customers" label="自下而上总客户数" min={0} step={100} value={inputs.bottomUpTotalCustomers} onChange={(_,data)=>update("bottomUpTotalCustomers",data.value)}/>
-   <NumberInput id="market-bottomup-spend" label="每客户年支出" min={0} step={100} value={inputs.bottomUpAnnualSpendPerCustomer} onChange={(_,data)=>update("bottomUpAnnualSpendPerCustomer",data.value)}/>
-   <NumberInput id="market-bottomup-addressable" label="可服务客户数" min={0} step={100} value={inputs.bottomUpAddressableCustomers} onChange={(_,data)=>update("bottomUpAddressableCustomers",data.value)}/>
-   <NumberInput id="market-sales-reps" label="销售人员数量" min={0} value={inputs.salesReps} onChange={(_,data)=>update("salesReps",data.value)}/>
-   <NumberInput id="market-leads" label="每位销售每月合格线索" min={0} value={inputs.qualifiedLeadsPerRepPerMonth} onChange={(_,data)=>update("qualifiedLeadsPerRepPerMonth",data.value)}/>
-   <NumberInput id="market-conversion" label="线索转客户转化率 (0–1)" min={0} max={1} step={.01} value={inputs.leadToCustomerConversionRate} onChange={(_,data)=>update("leadToCustomerConversionRate",data.value)}/>
-   <NumberInput id="market-arpc" label="每客户年收入" min={0} value={inputs.annualRevenuePerCustomer} onChange={(_,data)=>update("annualRevenuePerCustomer",data.value)}/>
-   <NumberInput id="market-capacity" label="年交付客户容量" min={0} value={inputs.annualDeliveryCapacityCustomers} onChange={(_,data)=>update("annualDeliveryCapacityCustomers",data.value)}/>
+   <NumberInput id="market-topdown-tam" label="自上而下总市场 TAM" min={0} step={1000000} value={inputs.topDownTotalMarket} onChange={(_,data)=>update("topDownTotalMarket",Number(data.value))}/>
+   <NumberInput id="market-topdown-share" label="可服务市场占比 (0–1)" min={0} max={1} step={.01} value={inputs.topDownAddressableShare} onChange={(_,data)=>update("topDownAddressableShare",Number(data.value))}/>
+   <NumberInput id="market-bottomup-customers" label="自下而上总客户数" min={0} step={100} value={inputs.bottomUpTotalCustomers} onChange={(_,data)=>update("bottomUpTotalCustomers",Number(data.value))}/>
+   <NumberInput id="market-bottomup-spend" label="每客户年支出" min={0} step={100} value={inputs.bottomUpAnnualSpendPerCustomer} onChange={(_,data)=>update("bottomUpAnnualSpendPerCustomer",Number(data.value))}/>
+   <NumberInput id="market-bottomup-addressable" label="可服务客户数" min={0} step={100} value={inputs.bottomUpAddressableCustomers} onChange={(_,data)=>update("bottomUpAddressableCustomers",Number(data.value))}/>
+   <NumberInput id="market-sales-reps" label="销售人员数量" min={0} value={inputs.salesReps} onChange={(_,data)=>update("salesReps",Number(data.value))}/>
+   <NumberInput id="market-leads" label="每位销售每月合格线索" min={0} value={inputs.qualifiedLeadsPerRepPerMonth} onChange={(_,data)=>update("qualifiedLeadsPerRepPerMonth",Number(data.value))}/>
+   <NumberInput id="market-conversion" label="线索转客户转化率 (0–1)" min={0} max={1} step={.01} value={inputs.leadToCustomerConversionRate} onChange={(_,data)=>update("leadToCustomerConversionRate",Number(data.value))}/>
+   <NumberInput id="market-arpc" label="每客户年收入" min={0} value={inputs.annualRevenuePerCustomer} onChange={(_,data)=>update("annualRevenuePerCustomer",Number(data.value))}/>
+   <NumberInput id="market-capacity" label="年交付客户容量" min={0} value={inputs.annualDeliveryCapacityCustomers} onChange={(_,data)=>update("annualDeliveryCapacityCustomers",Number(data.value))}/>
   </div>
   {errors.length>0&&<InlineNotification kind="error" lowContrast title="请修正输入" subtitle={errors.join(" ")} hideCloseButton/>}
   {saveError&&<InlineNotification kind="error" lowContrast title="保存失败" subtitle={saveError} hideCloseButton/>}
@@ -48,6 +48,7 @@ export default function MarketSizingPanel({opportunityId}:{opportunityId:string}
    <div><span>交付能力上限</span><strong>{money(result.deliveryCapacityRevenue,inputs.currency)}</strong></div>
    <div className="research-market-som"><span>SOM（受 {result.somConstraint==="sales_capacity"?"销售能力":result.somConstraint==="delivery_capacity"?"交付能力":"可服务市场"} 约束）</span><strong>{money(result.som,inputs.currency)}</strong></div>
    <p className="panel-note">两条 TAM 路径差异率：{result.topDownBottomUpGapRate===null?"—":(result.topDownBottomUpGapRate*100).toFixed(1)+"%"}。请为每个输入补充来源、地域、统计年份和证据等级；差异较大时不得直接采用平均值作为最终结论。</p>
-  </div>}
+  </div><div className="research-market-save"><Button size="sm" disabled={saving||!opportunityId||errors.length>0} onClick={()=>void save()}>{saving?"保存中…":"保存市场规模假设版本"}</Button>{savedVersion!==null&&<span>已保存 v{savedVersion}</span>}</div></>}
+  {history.length>0&&<div className="research-model-history"><strong>市场规模历史版本</strong>{history.map(row=><div key={row.id}><span>v{row.version} · {row.status}</span><small>{new Date(row.created_at).toLocaleString()}</small></div>)}</div>}
  </Tile>;
 }
