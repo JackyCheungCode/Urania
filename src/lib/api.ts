@@ -155,29 +155,20 @@ export async function createCollectionJob(input: {
   input_payload?: Record<string, unknown>;
   idempotency_key: string;
 }): Promise<{ id: string; status: string }> {
-  if (apiBase) {
-    if (!supabase) throw new Error("Supabase is not configured.");
-    const { session } = await requireRole(["admin", "researcher"]);
-    const response = await fetch(apiBase + "/api/v1/jobs", {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: "Bearer " + session.access_token },
-      body: JSON.stringify(input),
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const message = (payload as { message?: string; error?: string }).message || (payload as { error?: string }).error;
-      throw new Error(message || "Unable to enqueue research job (" + response.status + ")");
-    }
-    return (payload as { data: { id: string; status: string } }).data;
+  if (!apiBase) throw new Error("队列 API 尚未配置；为避免创建无法执行的假队列任务，请先配置 VITE_API_BASE_URL。");
+  if (!supabase) throw new Error("Supabase is not configured.");
+  const { session } = await requireRole(["admin", "researcher"]);
+  const response = await fetch(apiBase + "/api/v1/jobs", {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: "Bearer " + session.access_token },
+    body: JSON.stringify(input),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = (payload as { message?: string; error?: string }).message || (payload as { error?: string }).error;
+    throw new Error(message || "Unable to enqueue research job (" + response.status + ")");
   }
-  const result = await rpc<{ data: { id: string; status: string } }>("urania_create_collection_job", {
-    p_job_type: input.job_type,
-    p_provider_key: input.provider_key || null,
-    p_market_country: input.market_country || null,
-    p_input_payload: input.input_payload || {},
-    p_idempotency_key: input.idempotency_key,
-  }, ["admin", "researcher"]);
-  return result.data;
+  return (payload as { data: { id: string; status: string } }).data;
 }
 
 export type CollectionJobRecord = {
