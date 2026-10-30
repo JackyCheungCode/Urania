@@ -39,7 +39,8 @@ const ALLOWED_RPCS = {
   urania_research_list_financial_models: { method: "POST", roles: ["admin", "researcher"] },
   urania_research_create_risk: { method: "POST", roles: ["admin", "researcher"] },
   urania_research_list_risks: { method: "POST", roles: ["admin", "researcher"] },
-  urania_research_verify_evidence: { method: "POST", roles: ["admin", "researcher"] }
+  urania_research_verify_evidence: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_list_findings: { method: "POST", roles: ["admin", "researcher"] }
 };
 
 function isConfiguredValue(value) {
