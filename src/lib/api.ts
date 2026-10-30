@@ -517,3 +517,22 @@ export async function saveResearchFinancialModel(input:{
 export async function listResearchFinancialModels(opportunityId:string):Promise<ResearchFinancialModelRecord[]>{
   return await rpc<ResearchFinancialModelRecord[]>("urania_research_list_financial_models",{p_opportunity_id:opportunityId},["admin","researcher"]);
 }
+
+
+export type ResearchRiskRecord = {
+  id:string;opportunity_id:string;risk_category:string;description:string;severity:string;
+  likelihood:string;hard_veto:boolean;status:string;mitigation_plan:string|null;created_at:string;
+};
+export async function createResearchRisk(input:{
+  opportunity_id:string;risk_category:string;description:string;severity:string;likelihood:string;
+  hard_veto:boolean;mitigation_plan?:string;
+}):Promise<ResearchRiskRecord>{
+  return await rpc<ResearchRiskRecord>("urania_research_create_risk",{
+    p_opportunity_id:input.opportunity_id,p_risk_category:input.risk_category,p_description:input.description,
+    p_severity:input.severity,p_likelihood:input.likelihood,p_hard_veto:input.hard_veto,
+    p_mitigation_plan:input.mitigation_plan||null
+  },["admin","researcher"]);
+}
+export async function listResearchRisks(opportunityId:string):Promise<ResearchRiskRecord[]>{
+  return await rpc<ResearchRiskRecord[]>("urania_research_list_risks",{p_opportunity_id:opportunityId},["admin","researcher"]);
+}
