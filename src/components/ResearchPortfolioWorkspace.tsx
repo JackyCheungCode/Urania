@@ -5,7 +5,7 @@ import ResearchScorePanel from "./ResearchScorePanel";
 import { Button, Checkbox, InlineNotification, Select, SelectItem, TextArea, TextInput, Tile } from "@carbon/react";
 import {
   createResearchProject, listResearchProjects, createResearchOpportunity, listResearchOpportunities,
-  createResearchEvidenceSource, createResearchEvidence, listResearchEvidence, listResearchEvidenceSources, createResearchFinding, createResearchRisk, listResearchRisks, verifyResearchEvidence, type ResearchRiskRecord, listResearchFindings, type ResearchFindingRecord, submitResearchDecision, approveResearchDecision, listResearchDecisions, type ResearchDecisionRecord, reviewResearchRisk, createAIResearchJob,
+  createResearchEvidenceSource, createResearchEvidence, listResearchEvidence, listResearchEvidenceSources, createResearchFinding, createResearchRisk, listResearchRisks, verifyResearchEvidence, type ResearchRiskRecord, listResearchFindings, type ResearchFindingRecord, submitResearchDecision, approveResearchDecision, listResearchDecisions, type ResearchDecisionRecord, reviewResearchRisk, createAIResearchJob, listResearchAuditEvents, type ResearchAuditEvent,
   type ResearchProjectRecord, type ResearchOpportunityRecord, type ResearchEvidenceRecord
 } from "../lib/api";
 
@@ -48,6 +48,7 @@ export default function ResearchPortfolioWorkspace() {
   const [verificationStatus,setVerificationStatus]=useState<"human_verified"|"disputed"|"rejected">("human_verified");
   const [verificationNote,setVerificationNote]=useState("");
   const [decisions,setDecisions]=useState<ResearchDecisionRecord[]>([]);
+  const [auditEvents,setAuditEvents]=useState<ResearchAuditEvent[]>([]);
   const [decisionChoice,setDecisionChoice]=useState<"invest"|"validate_more"|"defer"|"reject">("validate_more");
   const [decisionRationale,setDecisionRationale]=useState("");
   const [aiProvider,setAiProvider]=useState<"openai_api"|"anthropic_api"|"google_gemini_api">("openai_api");
@@ -69,7 +70,7 @@ export default function ResearchPortfolioWorkspace() {
   }
   useEffect(()=>{void loadProjects().catch(e=>setError(e instanceof Error?e.message:"无法读取研究项目。"));void listResearchEvidenceSources().then(rows=>{setSourceIds(rows.map(s=>({id:s.id,label:s.publisher+(s.title?" · "+s.title:"")})));if(rows[0])setSourceId(rows[0].id);}).catch(e=>setError(e instanceof Error?e.message:"无法读取来源目录。"));},[]);
   useEffect(()=>{void loadOpportunities(projectId).catch(e=>setError(e instanceof Error?e.message:"无法读取机会。"));},[projectId]);
-  useEffect(()=>{void loadEvidence(opportunityId).catch(e=>setError(e instanceof Error?e.message:"无法读取证据。"));if(opportunityId){void listResearchRisks(opportunityId).then(setRisks).catch(e=>setError(e instanceof Error?e.message:"无法读取风险登记簿。"));void listResearchFindings(opportunityId).then(setFindings).catch(e=>setError(e instanceof Error?e.message:"无法读取阶段结论。"));void listResearchDecisions(opportunityId).then(setDecisions).catch(e=>setError(e instanceof Error?e.message:"无法读取投资决策历史。"));}else{setRisks([]);setFindings([]);setDecisions([]);}},[opportunityId]);
+  useEffect(()=>{void loadEvidence(opportunityId).catch(e=>setError(e instanceof Error?e.message:"无法读取证据。"));if(opportunityId){void listResearchRisks(opportunityId).then(setRisks).catch(e=>setError(e instanceof Error?e.message:"无法读取风险登记簿。"));void listResearchFindings(opportunityId).then(setFindings).catch(e=>setError(e instanceof Error?e.message:"无法读取阶段结论。"));void listResearchDecisions(opportunityId).then(setDecisions).catch(e=>setError(e instanceof Error?e.message:"无法读取投资决策历史。"));void listResearchAuditEvents(opportunityId).then(setAuditEvents).catch(e=>setError(e instanceof Error?e.message:"无法读取审计时间线。"));}else{setRisks([]);setFindings([]);setDecisions([]);setAuditEvents([]);}},[opportunityId]);
 
   async function saveProject(e:FormEvent) {
     e.preventDefault();setBusy(true);setError("");setNotice("");
