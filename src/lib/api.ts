@@ -598,3 +598,9 @@ export async function createAIResearchJob(input:{
   input_payload:{query:input.query.trim(),stage:input.stage,context:input.context||"",opportunity_id:input.opportunity_id},
   idempotency_key:input.idempotency_key});
 }
+
+
+export type ResearchAuditEvent={event_type:string;entity_id:string;action:string;previous_status:string|null;new_status:string|null;note:string|null;actor_id:string|null;created_at:string};
+export async function listResearchAuditEvents(opportunityId:string):Promise<ResearchAuditEvent[]>{
+ return await rpc("urania_research_list_audit_events",{p_opportunity_id:opportunityId},["admin","researcher"]);
+}
