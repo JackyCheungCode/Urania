@@ -1,5 +1,5 @@
 import { Children, useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { Button as CarbonButton, InlineNotification, PasswordInput, TextInput, TextArea, Checkbox, Select, SelectItem, Table as CarbonTable, TableHead, TableRow, TableHeader, TableBody, TableCell, Tile, Grid, Column, SideNav, SideNavItems, SideNavLink, Modal, Header as CarbonHeader, OverflowMenu, OverflowMenuItem } from "@carbon/react";
+import { Button as CarbonButton, InlineNotification, PasswordInput, TextInput, TextArea, Checkbox, Select, SelectItem, Table as CarbonTable, TableHead, TableRow, TableHeader, TableBody, TableCell, Tile, Grid, Column, GridSettings, SideNav, SideNavItems, SideNavLink, Modal, Header as CarbonHeader, OverflowMenu, OverflowMenuItem } from "@carbon/react";
 import { supabase } from "./lib/supabase";
 import CRMExtras from "./components/CRMExtras";
 import ProfitCalculator from "./components/ProfitCalculator";
@@ -72,7 +72,7 @@ function MetricCard({ label, value, change, icon: Icon, tone, note }: { label: s
 }
 
 function CarbonLayoutGrid({ className, children, lg = 4 }: { className: string; children: ReactNode; lg?: 4 | 5 | 8 }) {
-  return <Grid fullWidth className={className}>{Children.map(children, (child, index) => <Column key={index} sm={4} md={4} lg={lg}>{child}</Column>)}</Grid>;
+  return <GridSettings subgrid={false}><Grid fullWidth className={className}>{Children.map(children, (child, index) => <Column key={index} sm={4} md={4} lg={lg}>{child}</Column>)}</Grid></GridSettings>;
 }
 
 function LoginScreen({ onLogin }: { onLogin: (email: string, password: string) => Promise<void> }) {
