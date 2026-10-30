@@ -33,7 +33,8 @@ const ALLOWED_RPCS = {
   urania_research_create_finding: { method: "POST", roles: ["admin", "researcher"] },
   urania_research_create_evidence_source: { method: "POST", roles: ["admin", "researcher"] },
   urania_research_create_evidence_record: { method: "POST", roles: ["admin", "researcher"] },
-  urania_research_list_evidence: { method: "POST", roles: ["admin", "researcher"] }
+  urania_research_list_evidence: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_list_evidence_sources: { method: "POST", roles: ["admin", "researcher"] }
 };
 
 function isConfiguredValue(value) {
