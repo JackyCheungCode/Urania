@@ -210,6 +210,18 @@ export default function ResearchPortfolioWorkspace() {
         {sourceId&&<p className="panel-note">最近登记来源：{sourceIds[0]?.label||"已登记"}</p>}
       </section>
       <section className="research-portfolio-section">
+        <h3>04A · 全球网页搜索</h3>
+        <p className="panel-note">通过已授权的 SerpApi 收集网页结果。搜索排名与摘要仅是发现线索，不代表销售、付费意愿或真实市场需求；导入后仍保持未核验代理证据。</p>
+        <form onSubmit={queueResearchSearch} className="research-portfolio-form">
+          <TextInput id="research-search-query" labelText="搜索关键词" value={searchQuery} onChange={e=>setSearchQuery(e.target.value)} maxLength={500} required/>
+          <TextInput id="research-search-country" labelText="市场国家代码（ISO-2，可选）" value={searchCountry} onChange={e=>setSearchCountry(e.target.value.toUpperCase().slice(0,2))} placeholder="US / TW / DE"/>
+          <Button type="submit" size="sm" disabled={busy||!opportunityId||searchQuery.trim().length<2||searchQuery.trim().length>500||(searchCountry.length>0&&!/^[A-Z]{2}$/.test(searchCountry))}>加入搜索队列</Button>
+          <Button type="button" size="sm" kind="tertiary" disabled={busy||!opportunityId} onClick={()=>void refreshSearchResults()}>刷新搜索结果</Button>
+          <Button type="button" size="sm" kind="tertiary" disabled={searchResults.length===0} onClick={()=>setAiContext(current=>(current+"\n\n"+searchResults.slice(0,8).map(r=>`[Search result] ${r.title}\nURL: ${r.url||"—"}\nSnippet: ${r.snippet||"—"}`).join("\n\n")).slice(0,12000))}>将搜索摘要加入 AI 背景</Button>
+        </form>
+        <div className="research-portfolio-list">{searchResults.map(r=><div key={r.id} className="research-portfolio-row"><strong>{r.title}</strong><span>{r.displayed_url||r.url||"未提供 URL"} · {r.query}</span><p>{r.snippet||"无摘要"}</p><Button size="sm" kind="tertiary" disabled={busy||importedSearchIds.includes(r.id)} onClick={()=>void importSearchEvidence(r)}>{importedSearchIds.includes(r.id)?"已导入本次证据":"导入为未核验代理证据"}</Button></div>)}{searchResults.length===0&&<p className="muted">当前机会暂无搜索结果。</p>}</div>
+      </section>
+      <section className="research-portfolio-section">
         <h3>04 · 证据记录</h3>
         <form onSubmit={saveEvidence} className="research-portfolio-form">
           <Select id="research-evidence-source" labelText="关联来源" value={sourceId} onChange={e=>setSourceId(e.target.value)}>
