@@ -40,12 +40,12 @@ test("global shell uses Carbon layout, navigation, tiles and modal primitives", 
 test("business workspaces compose Carbon Tile surfaces and Grid/Column layouts", async () => {
   const app = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
   for (const page of ["Overview", "Research", "CRM", "Intelligence", "Automation", "Integrations", "Settings"]) {
-    assert.match(app, new RegExp(\`function \${page}\\b\`), \`\${page} workspace must remain present\`);
+    assert.match(app, new RegExp("function " + page + "\\b"), page + " workspace must remain present");
   }
   assert.match(app, /function CarbonLayoutGrid[\s\S]*<Grid fullWidth[\s\S]*<Column/, "business layouts must use Carbon Grid and Column composition");
   assert.ok((app.match(/<Tile\b/g) || []).length >= 10, "business panels must use Carbon Tile");
   for (const layout of ["metric-grid", "crm-metrics", "dashboard-grid", "lower-grid", "research-cards", "intelligence-grid", "integration-summary", "settings-grid", "evidence-grid"]) {
-    assert.match(app, new RegExp(\`<CarbonLayoutGrid className="[^"]*\\b\${layout}\\b\`), \`\${layout} must use the shared Carbon grid\`);
+    assert.match(app, new RegExp('<CarbonLayoutGrid className="[^"]*\\b' + layout + '\\b'), layout + " must use the shared Carbon grid");
   }
   assert.match(app, /<OverflowMenu\b[\s\S]*<OverflowMenuItem/, "workspace actions must use Carbon menu primitives");
   assert.match(app, /InlineNotification className="toast-notification"/, "transient feedback must use Carbon notifications");
@@ -55,7 +55,7 @@ test("business workspaces compose Carbon Tile surfaces and Grid/Column layouts",
 test("responsive acceptance breakpoints cover desktop, tablet and narrow mobile widths", async () => {
   const styles = await readFile(new URL("../src/styles.scss", import.meta.url), "utf8");
   for (const breakpoint of ["1055px", "671px", "390px", "360px"]) {
-    assert.match(styles, new RegExp(\`@media\\s*\\(max-width:\\s*\${breakpoint.replace("px", "\\s*px")}\\)\`), \`missing responsive rule at \${breakpoint}\`);
+    assert.match(styles, new RegExp("@media\\s*\\(max-width:\\s*" + breakpoint.replace("px", "\\s*px") + "\\)"), "missing responsive rule at " + breakpoint);
   }
   assert.match(styles, /grid-template-columns:repeat\(16,minmax\(0,1fr\)\)/);
   assert.match(styles, /grid-template-columns:repeat\(8,minmax\(0,1fr\)\)/);
