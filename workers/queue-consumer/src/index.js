@@ -2,7 +2,8 @@ const INTERNAL_RPC = new Set([
   "urania_worker_claim_job",
   "urania_worker_get_provider",
   "urania_worker_update_job",
-  "urania_worker_store_search_results"
+  "urania_worker_store_search_results",
+  "urania_worker_save_ai_research"
 ]);
 
 function json(body, status=200) {
@@ -42,7 +43,7 @@ async function failAndAck(message, env, code, description) {
 
 const AI_PROVIDERS = {
   openai_api: { model: "gpt-4.1-mini" },
-  anthropic_api: { model: "claude-sonnet-4-5" },
+  anthropic_api: { model: "claude-sonnet-4-5-20250929" },
   google_gemini_api: { model: "gemini-2.5-flash" }
 };
 const VALID_STAGES = new Set(["discovery","standardization","demand","competition","customer","supply_chain","compliance","financial","investment","monitoring"]);
