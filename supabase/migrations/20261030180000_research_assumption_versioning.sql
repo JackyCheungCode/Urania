@@ -21,7 +21,7 @@ begin
  select coalesce(max(version),0)+1 into v_version from research.assumptions
   where opportunity_id=p_opportunity_id and assumption_key=trim(p_assumption_key);
  insert into research.assumptions(opportunity_id,assumption_key,assumption_value,rationale,source_evidence_ids,sensitivity,status,version,created_by)
- values(p_opportunity_id,trim(p_assumption_key),p_assumption_value,nullif(trim(coalesce(p_rationale,'')),''),coalesce(p_source_evidence_ids,'{}'),'high','unverified',v_version,auth.uid())
+ values(p_opportunity_id,trim(p_assumption_key),p_assumption_value,nullif(trim(coalesce(p_rationale,'')),''),coalesce(p_source_evidence_ids,'{}'),p_sensitivity,'unverified',v_version,auth.uid())
  returning * into v_row;
  return jsonb_build_object('id',v_row.id,'opportunity_id',v_row.opportunity_id,'assumption_key',v_row.assumption_key,
   'assumption_value',v_row.assumption_value,'rationale',v_row.rationale,'sensitivity',v_row.sensitivity,
