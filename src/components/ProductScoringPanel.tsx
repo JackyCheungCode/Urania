@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { AlertTriangle, CheckCircle2, Gauge, ShieldCheck, Sparkles } from "lucide-react";
+import { WarningAlt, CheckmarkFilled, Gauge, Security, Idea } from "@carbon/icons-react";
+import { Button, Checkbox, InlineNotification, Select, SelectItem, Slider, TextArea } from "@carbon/react";
 import { createProductScore, type ProductRecord, type ProductScoreRecord } from "../lib/api";
 import { supabase } from "../lib/supabase";
 
@@ -37,14 +38,14 @@ export default function ProductScoringPanel({products,toast}:Props){
   return <section className="panel product-scoring">
     <div className="crm-toolbar"><div className="profit-title"><span className="profit-icon"><Gauge size={18}/></span><div><h3>产品机会评分</h3><p className="panel-subtitle">固定权重、可解释评分；分数是研究判断，不是实际销量或 AI 预测。</p></div></div><span className="score-version">权重版本 v1.0</span></div>
     <form onSubmit={save}>
-      <label className="profit-product">待评分产品 *<select required value={productId} onChange={e=>setProductId(e.target.value)}><option value="">选择产品…</option>{products.map(p=><option key={p.id} value={p.id}>{p.canonical_name}</option>)}</select></label>
-      <div className="score-components">{(Object.keys(weights) as Array<keyof typeof weights>).map(key=><label className="score-slider" key={key}><span><strong>{labels[key]}</strong><b>{scores[key]}</b></span><input type="range" min="0" max="100" step="1" value={scores[key]} onChange={e=>setScores(prev=>({...prev,[key]:Number(e.target.value)}))}/><small>权重 {Math.round(weights[key]*100)}%</small></label>)}</div>
-      <div className="score-confidence"><label>证据置信度 <strong>{Math.round(confidence*100)}%</strong><input type="range" min="0" max="1" step="0.05" value={confidence} onChange={e=>setConfidence(Number(e.target.value))}/></label><div className={risks.some(r=>hardStops.has(r))?"score-hard-stop":"score-preview"}><span>{risks.some(r=>hardStops.has(r))?<AlertTriangle size={15}/>:<Sparkles size={15}/>}评分预览</span><strong>{score.toFixed(1)} / 100</strong><small>评分覆盖权重 {Math.round(coverage*100)}%</small></div></div>
-      <div className="score-risk-list"><div className="score-section-label">风险标记 <small>以下四项为硬性否决风险</small></div><div className="score-risk-grid">{riskOptions.map(([key,label])=><label key={key}><input type="checkbox" checked={risks.includes(key)} onChange={e=>setRisks(prev=>e.target.checked?[...prev,key]:prev.filter(x=>x!==key))}/><span>{label}{hardStops.has(key)&&<b>硬性拦截</b>}</span></label>)}</div></div>
-      <label className="profit-assumptions">证据说明 / 主要不确定性<textarea rows={3} maxLength={4000} value={notes} onChange={e=>setNotes(e.target.value)} placeholder="记录支撑分数的来源、日期、市场范围与缺失数据。"/></label>
-      {error&&<p className="auth-error" role="alert">{error}</p>}
-      {saved&&<p className="auth-info" role="status"><CheckCircle2 size={14}/>已保存评分 {saved.score.toFixed(1)}；覆盖权重 {Math.round(saved.coverage_weight*100)}%。{saved.hard_stop?"存在硬性风险，分数强制归零。":""}</p>}
-      <div className="profit-actions"><span><ShieldCheck size={14}/>数据库重算权重并记录风险、置信度、评分版本与审计事件。</span><button type="submit" className="button button--primary" disabled={saving||!productId}>{saving?"保存中…":"保存评分"}</button></div>
+      <Select id="score-product" labelText="待评分产品" required value={productId} onChange={e=>setProductId(e.target.value)}><SelectItem value="" text="选择产品…"/>{products.map(p=><SelectItem key={p.id} value={p.id} text={p.canonical_name}/>)}</Select>
+      <div className="score-components">{(Object.keys(weights) as Array<keyof typeof weights>).map(key=><label className="score-slider" key={key}><span><strong>{labels[key]}</strong><b>{scores[key]}</b></span><Slider id={`score-${key}`} labelText={labels[key]} min={0} max={100} step={1} value={scores[key]} onChange={value=>setScores(prev=>({...prev,[key]:Number(value)}))}/><small>权重 {Math.round(weights[key]*100)}%</small></label>)}</div>
+      <div className="score-confidence"><label>证据置信度 <strong>{Math.round(confidence*100)}%</strong><Slider id="score-confidence" labelText="证据置信度" min={0} max={1} step={0.05} value={confidence} onChange={value=>setConfidence(Number(value))}/></label><div className={risks.some(r=>hardStops.has(r))?"score-hard-stop":"score-preview"}><span>{risks.some(r=>hardStops.has(r))?<WarningAlt size={15}/>:<Idea size={15}/>}评分预览</span><strong>{score.toFixed(1)} / 100</strong><small>评分覆盖权重 {Math.round(coverage*100)}%</small></div></div>
+      <div className="score-risk-list"><div className="score-section-label">风险标记 <small>以下四项为硬性否决风险</small></div><div className="score-risk-grid">{riskOptions.map(([key,label])=><Checkbox key={key} id={`risk-${key}`} labelText={<>{label}{hardStops.has(key)&&<b>硬性拦截</b>}</>} checked={risks.includes(key)} onChange={checked=>setRisks(prev=>checked?[...prev,key]:prev.filter(x=>x!==key))}/>)}</div></div>
+      <TextArea id="score-notes" labelText="证据说明 / 主要不确定性" rows={3} maxLength={4000} value={notes} onChange={e=>setNotes(e.target.value)} placeholder="记录支撑分数的来源、日期、市场范围与缺失数据。"/>
+      {error&&<InlineNotification kind="error" lowContrast title="评分保存失败" subtitle={error} hideCloseButton/>}
+      {saved&&<InlineNotification kind="success" lowContrast title={`已保存评分 ${saved.score.toFixed(1)}`} subtitle={`覆盖权重 ${Math.round(saved.coverage_weight*100)}%。${saved.hard_stop?"存在硬性风险，分数强制归零。":""}`} hideCloseButton/>}
+      <div className="profit-actions"><span><Security size={14}/>数据库重算权重并记录风险、置信度、评分版本与审计事件。</span><Button type="submit" kind="primary" disabled={saving||!productId}>{saving?"保存中…":"保存评分"}</Button></div>
     </form>
   </section>;
 }
