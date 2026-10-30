@@ -61,3 +61,13 @@ test("responsive acceptance breakpoints cover desktop, tablet and narrow mobile 
   assert.match(styles, /grid-template-columns:repeat\(8,minmax\(0,1fr\)\)/);
   assert.match(styles, /grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
 });
+
+
+test("authentication bypass is compiled only for explicit visual-test mode", async () => {
+  const app = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
+  const gate = await readFile(new URL("../src/auth/AuthGate.tsx", import.meta.url), "utf8");
+  const env = await readFile(new URL("../src/vite-env.d.ts", import.meta.url), "utf8");
+  assert.match(app, /import\.meta\.env\.MODE === "test" && import\.meta\.env\.VITE_E2E_BYPASS_AUTH === "true"/);
+  assert.match(gate, /if \(e2ePreview\) return <>{children}<\/>;/);
+  assert.match(env, /VITE_E2E_BYPASS_AUTH\?: string/);
+});
