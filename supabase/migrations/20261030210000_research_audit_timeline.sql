@@ -1,7 +1,7 @@
 -- Unified owner-scoped audit timeline for evidence verification, risk review and investment decisions.
 create or replace function public.urania_research_list_audit_events(p_opportunity_id uuid)
 returns setof jsonb language sql stable security invoker set search_path=''
-as $
+as $function$
  select event_payload from (
  select e.created_at as event_time, jsonb_build_object('event_type','evidence_verification','entity_id',e.id,
   'action','verification_status_changed','previous_status',e.previous_status,'new_status',e.new_status,
@@ -31,6 +31,6 @@ as $
  where o.id=p_opportunity_id and p.created_by=auth.uid()
  ) events(event_time,event_payload)
  order by event_time desc
-$;
+$function$;
 revoke all on function public.urania_research_list_audit_events(uuid) from public,anon;
 grant execute on function public.urania_research_list_audit_events(uuid) to authenticated;
