@@ -35,7 +35,8 @@ export function validateMarketSizingInputs(input:MarketSizingInputs):string[]{
   if(!Number.isFinite(input.topDownAddressableShare)||input.topDownAddressableShare<0||input.topDownAddressableShare>1)errors.push("自上而下可服务市场占比必须介于 0 和 1。");
   if(!Number.isFinite(input.leadToCustomerConversionRate)||input.leadToCustomerConversionRate<0||input.leadToCustomerConversionRate>1)errors.push("线索转化率必须介于 0 和 1。");
   if(input.bottomUpAddressableCustomers>input.bottomUpTotalCustomers)errors.push("可服务客户数不能超过总客户数。");
-  if(input.topDownTotalMarket>0&&input.bottomUpTotalCustomers===0)errors.push("自下而上总客户数必须大于 0 才能进行双路径核对。");
+  if(input.topDownTotalMarket===0)errors.push("自上而下 TAM 必须大于 0。");
+  if(input.bottomUpTotalCustomers===0||input.bottomUpAnnualSpendPerCustomer===0)errors.push("自下而上客户数与年支出必须大于 0。");
   return errors;
 }
 export function calculateMarketSizing(input:MarketSizingInputs):MarketSizingResult{
