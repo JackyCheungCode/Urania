@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
-import { InlineNotification, NumberInput, Select, SelectItem, Tile } from "@carbon/react";
+import { useEffect, useMemo, useState } from "react";
+import { Button, InlineNotification, NumberInput, Select, SelectItem, Tile } from "@carbon/react";
+import { listResearchAssumptions, saveResearchAssumption, type ResearchAssumptionRecord } from "../lib/api";
 import { calculateMarketSizing, validateMarketSizingInputs, type MarketSizingInputs } from "../lib/market-sizing";
 
 const initial:MarketSizingInputs={
@@ -9,12 +10,17 @@ const initial:MarketSizingInputs={
  annualRevenuePerCustomer:8000,annualDeliveryCapacityCustomers:150
 };
 const money=(value:number,currency:string)=>new Intl.NumberFormat("en-US",{style:"currency",currency,maximumFractionDigits:0}).format(value);
-export default function MarketSizingPanel(){
+export default function MarketSizingPanel({opportunityId}:{opportunityId:string}){
  const [inputs,setInputs]=useState<MarketSizingInputs>(initial);
- const [calculated,setCalculated]=useState(false);
+ const [saving,setSaving]=useState(false);
+ const [saveError,setSaveError]=useState("");
+ const [savedVersion,setSavedVersion]=useState<number|null>(null);
+ const [history,setHistory]=useState<ResearchAssumptionRecord[]>([]);
+ useEffect(()=>{if(!opportunityId){setHistory([]);return;}void listResearchAssumptions(opportunityId).then(rows=>setHistory(rows.filter(r=>r.assumption_key==="market_sizing")));},[opportunityId]);
  const update=<K extends keyof MarketSizingInputs>(key:K,value:MarketSizingInputs[K])=>setInputs(current=>({...current,[key]:value}));
  const errors=useMemo(()=>validateMarketSizingInputs(inputs),[inputs]);
  const result=useMemo(()=>{if(errors.length)return null;try{return calculateMarketSizing(inputs);}catch{return null;}},[inputs,errors]);
+ const save=async()=>{if(!opportunityId||!result)return;setSaving(true);setSaveError("");try{const row=await saveResearchAssumption({opportunity_id:opportunityId,assumption_key:"market_sizing",assumption_value:{inputs,outputs:result,engine_version:"urania-market-sizing-v1"},rationale:"双路径 TAM/SAM 核对与销售/交付能力约束 SOM；录入值需关联证据后方可验证。",sensitivity:"high"});setSavedVersion(row.version);setHistory(await listResearchAssumptions(opportunityId).then(rows=>rows.filter(r=>r.assumption_key==="market_sizing")));}catch(error){setSaveError(error instanceof Error?error.message:"市场规模假设保存失败。");}finally{setSaving(false);}};
  return <Tile className="research-market-sizing">
   <h3>市场规模 · TAM / SAM / SOM</h3>
   <p className="panel-note">TAM/SAM 采用自上而下与自下而上双路径核对；SOM 根据销售获客、交付产能和可服务市场的最小约束计算，不使用 SAM 固定百分比。</p>
@@ -32,7 +38,8 @@ export default function MarketSizingPanel(){
    <NumberInput id="market-capacity" label="年交付客户容量" min={0} value={inputs.annualDeliveryCapacityCustomers} onChange={(_,data)=>update("annualDeliveryCapacityCustomers",data.value)}/>
   </div>
   {errors.length>0&&<InlineNotification kind="error" lowContrast title="请修正输入" subtitle={errors.join(" ")} hideCloseButton/>}
-  {result&&<div className="research-market-results">
+  {saveError&&<InlineNotification kind="error" lowContrast title="保存失败" subtitle={saveError} hideCloseButton/>}
+  {result&&<><div className="research-market-results">
    <div><span>自上而下 TAM</span><strong>{money(result.topDownTAM,inputs.currency)}</strong></div>
    <div><span>自下而上 TAM</span><strong>{money(result.bottomUpTAM,inputs.currency)}</strong></div>
    <div><span>核对 TAM（简单平均）</span><strong>{money(result.reconciledTAM,inputs.currency)}</strong></div>
