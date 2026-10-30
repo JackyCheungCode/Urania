@@ -495,5 +495,5 @@ export async function listResearchEvidence(opportunityId:string):Promise<Researc
 }
 
 export async function listResearchEvidenceSources():Promise<Array<{id:string;publisher:string;source_type:string;source_url:string|null;title:string|null;license_name:string|null;license_scope:string|null;created_at:string}>> {
-  return await rpc("urania_research_list_evidence_sources",{},["admin","researcher"]);
+  return await rpc<Array<{id:string;publisher:string;source_type:string;source_url:string|null;title:string|null;license_name:string|null;license_scope:string|null;created_at:string}>>("urania_research_list_evidence_sources",{},["admin","researcher"]);
 }
