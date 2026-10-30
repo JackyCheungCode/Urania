@@ -251,6 +251,10 @@ export default function ResearchPortfolioWorkspace() {
       </section>
     </div>
     <section className="research-portfolio-evidence">
+      <h3>审计时间线 <span className="muted">· {auditEvents.length} 条</span></h3>
+      {auditEvents.length===0?<p className="muted">尚无证据核验、风险复核或投资审批事件。</p>:auditEvents.map(event=><article className="research-evidence-row" key={event.event_type+"-"+event.entity_id+"-"+event.created_at}><div><strong>{event.event_type} · {event.action}</strong><p>{event.previous_status||"—"} → {event.new_status||"—"}</p><small>{event.note||"无附加说明"}</small></div><span>{new Date(event.created_at).toLocaleString()}</span></article>)}
+    </section>
+    <section className="research-portfolio-evidence">
       <h3>证据时间线 <span className="muted">· {evidence.length} 条</span></h3>
       <div className="research-verification-tools"><Select id="research-verification-status" labelText="核验结果" value={verificationStatus} onChange={e=>setVerificationStatus(e.target.value as "human_verified"|"disputed"|"rejected")}><SelectItem value="human_verified" text="人工核验通过"/><SelectItem value="disputed" text="存在争议"/><SelectItem value="rejected" text="证据驳回"/></Select><TextInput id="research-verification-note" labelText="核验说明（至少 8 字）" value={verificationNote} onChange={e=>setVerificationNote(e.target.value)}/></div>
       {evidence.length===0?<p className="muted">选择一个机会并登记证据后，证据将显示在此处。</p>:evidence.map(e=><article className="research-evidence-row" key={e.id}>
