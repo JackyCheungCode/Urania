@@ -4,9 +4,9 @@ import { calculateResearchScore, validateResearchScoreInputs, type ResearchScore
 const initialScores:ResearchScoreInputs={marketDemand:50,growth:50,accessibility:50,competitiveAdvantage:50,willingnessToPay:50,profitabilityCashflow:50,supplyChain:50,scalability:50};
 const initialEvidence:EvidenceQualityInputs={coverage:0,quality:0,freshness:0,uncertainty:1};
 const labels:Record<keyof ResearchScoreInputs,string>={marketDemand:"市场需求",growth:"市场增长",accessibility:"市场可进入性",competitiveAdvantage:"竞争优势",willingnessToPay:"支付意愿",profitabilityCashflow:"盈利与现金流",supplyChain:"供应链",scalability:"扩展性"};
-export default function ResearchScorePanel({activeHardVeto,onScoreChange}:{activeHardVeto:boolean;onScoreChange?:(value:{commercialScore:number;evidenceCoverage:number;evidenceReadiness:number})=>void}){
+export default function ResearchScorePanel({opportunityId,activeHardVeto,onScoreChange}:{opportunityId:string;activeHardVeto:boolean;onScoreChange?:(value:{commercialScore:number;evidenceCoverage:number;evidenceReadiness:number})=>void}){
  const [scores,setScores]=useState(initialScores);const [evidence,setEvidence]=useState(initialEvidence);
- const errors=useMemo(()=>validateResearchScoreInputs(scores,evidence),[scores,evidence]);
+ useEffect(()=>{setScores(initialScores);setEvidence(initialEvidence);},[opportunityId]);\n const errors=useMemo(()=>validateResearchScoreInputs(scores,evidence),[scores,evidence]);
  const result=useMemo(()=>errors.length?null:calculateResearchScore(scores,evidence,activeHardVeto),[scores,evidence,activeHardVeto,errors]);
  useEffect(()=>{if(result)onScoreChange?.({commercialScore:result.commercialScore,evidenceCoverage:result.evidenceCoverage,evidenceReadiness:result.evidenceReadiness});},[result,onScoreChange]);
  return <Tile className="research-score-panel">
