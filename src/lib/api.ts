@@ -578,3 +578,12 @@ export async function listResearchDecisions(opportunityId:string):Promise<Resear
 export async function reviewResearchRisk(input:{risk_id:string;status:"open"|"mitigating"|"accepted"|"resolved"|"false_positive";note:string}):Promise<{id:string;status:string;reviewed_by:string;reviewed_at:string}>{
  return await rpc("urania_research_review_risk",{p_risk_id:input.risk_id,p_status:input.status,p_note:input.note},["admin"]);
 }
+
+
+export type ResearchAssumptionRecord={id:string;opportunity_id:string;assumption_key:string;assumption_value:Record<string,unknown>;rationale:string|null;sensitivity:string;status:string;version:number;created_at:string};
+export async function saveResearchAssumption(input:{opportunity_id:string;assumption_key:string;assumption_value:Record<string,unknown>;rationale?:string;sensitivity?:"low"|"medium"|"high"|"critical";source_evidence_ids?:string[]}):Promise<ResearchAssumptionRecord>{
+ return await rpc("urania_research_save_assumption",{p_opportunity_id:input.opportunity_id,p_assumption_key:input.assumption_key,p_assumption_value:input.assumption_value,p_rationale:input.rationale||null,p_sensitivity:input.sensitivity||"high",p_source_evidence_ids:input.source_evidence_ids||[]},["admin","researcher"]);
+}
+export async function listResearchAssumptions(opportunityId:string):Promise<ResearchAssumptionRecord[]>{
+ return await rpc("urania_research_list_assumptions",{p_opportunity_id:opportunityId},["admin","researcher"]);
+}
