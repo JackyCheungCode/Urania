@@ -44,4 +44,4 @@ begin
   'evidence_status','insufficient','model_provider',p_provider_key,'model_name',p_model_name);
 end $$;
 revoke all on function public.urania_worker_save_ai_research(text,uuid,uuid,uuid,text,text,text,jsonb,jsonb,jsonb) from public,authenticated;
-grant execute on function public.urania_worker_save_ai_research(text,uuid,uuid,text,text,text,jsonb,jsonb,jsonb) to anon, service_role;
+grant execute on function public.urania_worker_save_ai_research(text,uuid,uuid,uuid,text,text,text,jsonb,jsonb,jsonb) to anon, service_role;
