@@ -576,7 +576,7 @@ function Automation({ toast }: { toast: (s: string) => void }) {
           <label>联系人 *<Select id="carbon-select-app-11" labelText="选择选项" required value={draftContactId} onChange={e=>setdraftContactId(e.target.value)}><SelectItem value="" text="选择允许联系的联系人…"/>{approvalContacts.filter(x=>x.work_email&&!x.do_not_contact).map(x=><SelectItem value={x.id} text={`${x.full_name} · ${x.company_name} · ${x.work_email}`}/>)}</Select></label>
           <label>邮件主题 *<TextInput labelText="" hideLabel  required minLength={3} maxLength={240} value={draftSubject} onChange={e=>setDraftSubject(e.target.value)} placeholder="A short introduction to our product range"/></label>
         </div>
-        <label className="provider-scope-label">邮件正文 *<textarea required minLength={20} maxLength={12000} rows={6} value={draftBody} onChange={e=>setDraftBody(e.target.value)} placeholder="Write the proposed first-contact email…"/></label>
+        <label className="provider-scope-label">邮件正文 *<TextArea labelText="邮件正文" required minLength={20} maxLength={12000} rows={6} value={draftBody} onChange={e=>setDraftBody(e.target.value)} placeholder="Write the proposed first-contact email…"/></label>
         <div className="account-form-actions"><CarbonButton type="submit" kind="primary" className="button button--primary" disabled={savingDraft||!draftContactId}>{savingDraft?"提交中…":"提交人工审批"}</CarbonButton></div>
       </form>
       {error&&<div className="inline-error" role="alert"><ShieldCheck size={15}/><span>{error}</span><CarbonButton onClick={()=>void reloadApprovals()}>重试</CarbonButton></div>}
