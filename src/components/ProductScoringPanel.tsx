@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { WarningAlt, Activity, Security, Idea } from "@carbon/react/icons";
-import { Button, Checkbox, InlineNotification, Select, SelectItem, Slider, TextArea } from "@carbon/react";
+import { Button, Checkbox, InlineNotification, Select, SelectItem, Slider, TextArea, Tile } from "@carbon/react";
 import { createProductScore, type ProductRecord, type ProductScoreRecord } from "../lib/api";
 import { supabase } from "../lib/supabase";
 
@@ -35,7 +35,7 @@ export default function ProductScoringPanel({products,toast}:Props){
     }catch(x){setError(x instanceof Error?x.message:"保存评分失败。");}
     finally{setSaving(false);}
   }
-  return <section className="panel product-scoring">
+  return <Tile className="panel product-scoring">
     <div className="crm-toolbar"><div className="profit-title"><span className="profit-icon"><Activity size={18}/></span><div><h3>产品机会评分</h3><p className="panel-subtitle">固定权重、可解释评分；分数是研究判断，不是实际销量或 AI 预测。</p></div></div><span className="score-version">权重版本 v1.0</span></div>
     <form onSubmit={save}>
       <Select id="score-product" labelText="待评分产品" required value={productId} onChange={e=>setProductId(e.target.value)}><SelectItem value="" text="选择产品…"/>{products.map(p=><SelectItem key={p.id} value={p.id} text={p.canonical_name}/>)}</Select>
@@ -47,5 +47,5 @@ export default function ProductScoringPanel({products,toast}:Props){
       {saved&&<InlineNotification kind="success" lowContrast title={`已保存评分 ${saved.score.toFixed(1)}`} subtitle={`覆盖权重 ${Math.round(saved.coverage_weight*100)}%。${saved.hard_stop?"存在硬性风险，分数强制归零。":""}`} hideCloseButton/>}
       <div className="profit-actions"><span><Security size={14}/>数据库重算权重并记录风险、置信度、评分版本与审计事件。</span><Button type="submit" kind="primary" disabled={saving||!productId}>{saving?"保存中…":"保存评分"}</Button></div>
     </form>
-  </section>;
+  </Tile>;
 }
