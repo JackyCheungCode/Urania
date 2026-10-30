@@ -72,7 +72,7 @@ function MetricCard({ label, value, change, icon: Icon, tone, note }: { label: s
 }
 
 function CarbonLayoutGrid({ className, children, lg = 4 }: { className: string; children: ReactNode; lg?: 4 | 5 | 8 }) {
-  return <GridSettings subgrid={false}><Grid fullWidth className={className}>{Children.map(children, (child, index) => <Column key={index} sm={4} md={4} lg={lg}>{child}</Column>)}</Grid></GridSettings>;
+  return <GridSettings mode="css-grid" subgrid={false}><Grid fullWidth className={className}>{Children.map(children, (child, index) => <Column key={index} sm={4} md={4} lg={lg}>{child}</Column>)}</Grid></GridSettings>;
 }
 
 function LoginScreen({ onLogin }: { onLogin: (email: string, password: string) => Promise<void> }) {
