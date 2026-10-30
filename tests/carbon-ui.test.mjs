@@ -79,3 +79,10 @@ test("authentication bypass is compiled only for explicit visual-test mode", asy
   assert.match(gate, /if \(e2ePreview\) return <>{children}<\/>;/);
   assert.match(env, /VITE_E2E_BYPASS_AUTH\?: string/);
 });
+
+
+test("CRM tab navigation remains reachable on narrow mobile screens", async () => {
+  const styles = await readFile(new URL("../src/styles.scss", import.meta.url), "utf8");
+  assert.match(styles, /\.crm-tabs\{max-width:100%;overflow-x:auto;overflow-y:hidden;white-space:nowrap/);
+  assert.match(styles, /\.crm-tabs \.cds--btn\{flex:0 0 auto;white-space:nowrap/);
+});
