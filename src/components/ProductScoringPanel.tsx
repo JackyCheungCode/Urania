@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { WarningAlt, CheckmarkFilled, Gauge, Security, Idea } from "@carbon/react/icons";
+import { WarningAlt, Activity, Security, Idea } from "@carbon/react/icons";
 import { Button, Checkbox, InlineNotification, Select, SelectItem, Slider, TextArea } from "@carbon/react";
 import { createProductScore, type ProductRecord, type ProductScoreRecord } from "../lib/api";
 import { supabase } from "../lib/supabase";
@@ -36,7 +36,7 @@ export default function ProductScoringPanel({products,toast}:Props){
     finally{setSaving(false);}
   }
   return <section className="panel product-scoring">
-    <div className="crm-toolbar"><div className="profit-title"><span className="profit-icon"><Gauge size={18}/></span><div><h3>产品机会评分</h3><p className="panel-subtitle">固定权重、可解释评分；分数是研究判断，不是实际销量或 AI 预测。</p></div></div><span className="score-version">权重版本 v1.0</span></div>
+    <div className="crm-toolbar"><div className="profit-title"><span className="profit-icon"><Activity size={18}/></span><div><h3>产品机会评分</h3><p className="panel-subtitle">固定权重、可解释评分；分数是研究判断，不是实际销量或 AI 预测。</p></div></div><span className="score-version">权重版本 v1.0</span></div>
     <form onSubmit={save}>
       <Select id="score-product" labelText="待评分产品" required value={productId} onChange={e=>setProductId(e.target.value)}><SelectItem value="" text="选择产品…"/>{products.map(p=><SelectItem key={p.id} value={p.id} text={p.canonical_name}/>)}</Select>
       <div className="score-components">{(Object.keys(weights) as Array<keyof typeof weights>).map(key=><label className="score-slider" key={key}><span><strong>{labels[key]}</strong><b>{scores[key]}</b></span><Slider id={`score-${key}`} labelText={labels[key]} min={0} max={100} step={1} value={scores[key]} onChange={value=>setScores(prev=>({...prev,[key]:Number(value)}))}/><small>权重 {Math.round(weights[key]*100)}%</small></label>)}</div>
