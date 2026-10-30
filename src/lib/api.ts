@@ -536,3 +536,8 @@ export async function createResearchRisk(input:{
 export async function listResearchRisks(opportunityId:string):Promise<ResearchRiskRecord[]>{
   return await rpc<ResearchRiskRecord[]>("urania_research_list_risks",{p_opportunity_id:opportunityId},["admin","researcher"]);
 }
+
+
+export async function verifyResearchEvidence(input:{evidence_id:string;status:"human_verified"|"disputed"|"rejected";note:string}):Promise<{id:string;verification_status:string;verified_by:string;verified_at:string}>{
+  return await rpc("urania_research_verify_evidence",{p_evidence_id:input.evidence_id,p_status:input.status,p_note:input.note},["admin","researcher"]);
+}
