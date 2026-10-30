@@ -42,7 +42,7 @@ test("business workspaces compose Carbon Tile surfaces and Grid/Column layouts",
   for (const page of ["Overview", "Research", "CRM", "Intelligence", "Automation", "Integrations", "Settings"]) {
     assert.match(app, new RegExp("function " + page + "\\b"), page + " workspace must remain present");
   }
-  assert.match(app, /function CarbonLayoutGrid[\s\S]*<GridSettings subgrid={false}>[\s\S]*<Grid fullWidth[\s\S]*<Column/, "business layouts must use independent Carbon Grid and Column composition");
+  assert.match(app, /function CarbonLayoutGrid[\s\S]*<GridSettings mode="css-grid" subgrid={false}>[\s\S]*<Grid fullWidth[\s\S]*<Column/, "business layouts must use independent Carbon Grid and Column composition");
   assert.ok((app.match(/<Tile\b/g) || []).length >= 10, "business panels must use Carbon Tile");
   for (const layout of ["metric-grid", "crm-metrics", "dashboard-grid", "lower-grid", "research-cards", "intelligence-grid", "integration-summary", "settings-grid", "evidence-grid"]) {
     assert.match(app, new RegExp('<CarbonLayoutGrid className="[^"]*\\b' + layout + '\\b'), layout + " must use the shared Carbon grid");
