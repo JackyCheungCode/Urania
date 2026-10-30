@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import InvestmentModelPanel from "./InvestmentModelPanel";
+import MarketSizingPanel from "./MarketSizingPanel";
 import { Button, Checkbox, InlineNotification, Select, SelectItem, TextArea, TextInput, Tile } from "@carbon/react";
 import {
   createResearchProject, listResearchProjects, createResearchOpportunity, listResearchOpportunities,
@@ -187,6 +188,7 @@ export default function ResearchPortfolioWorkspace() {
           <Button type="submit" size="sm" disabled={busy||!opportunityId}>保存阶段结论</Button>
         </form>
       </section>
+      <MarketSizingPanel />
       <InvestmentModelPanel opportunityId={opportunityId} />
     </div>
     {risks.some(r=>r.hard_veto&&["open","mitigating"].includes(r.status))&&<InlineNotification kind="error" lowContrast title="存在未解除的硬性否决风险" subtitle="当前机会不得进入投资批准；必须先完成风险核验并由授权人员关闭风险。" hideCloseButton/>}
