@@ -241,3 +241,23 @@ test("contact enrichment jobs are accepted for authorized researchers and queued
   assert.equal(sent.length,1);
   assert.equal(sent[0].provider_key,"hunter");
 });
+
+
+test("AI research jobs are accepted for authorized researchers and retain opportunity scope",async(t)=>{
+ const originalFetch=globalThis.fetch;const rpcCalls=[];
+ globalThis.fetch=async(url,init={})=>{
+  if(String(url).endsWith("/auth/v1/user"))return new Response(JSON.stringify({id:"researcher-1",app_metadata:{urania_role:"researcher"}}),{status:200});
+  rpcCalls.push({url:String(url),body:JSON.parse(init.body)});
+  return new Response(JSON.stringify({data:{id:"ai-job-1",status:"queued"}}),{status:200});
+ };
+ t.after(()=>{globalThis.fetch=originalFetch;});
+ const sent=[];
+ const response=await handle(new Request("https://api.example.com/api/v1/jobs",{
+  method:"POST",headers:{authorization:"Bearer valid-test-token","content-type":"application/json"},
+  body:JSON.stringify({job_type:"research.ai_analysis",provider_key:"openai_api",input_payload:{query:"Evaluate customer demand",stage:"demand",opportunity_id:"opp-1"},idempotency_key:"ai-research-job-001"})
+ }),{...baseEnv,URANIA_JOBS:{async send(message){sent.push(message);}}});
+ assert.equal(response.status,202);
+ assert.equal(rpcCalls[0].body.p_job_type,"research.ai_analysis");
+ assert.equal(sent[0].requested_by,"researcher-1");
+ assert.equal(sent[0].input_payload.opportunity_id,"opp-1");
+});

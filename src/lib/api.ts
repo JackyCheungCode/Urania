@@ -155,29 +155,20 @@ export async function createCollectionJob(input: {
   input_payload?: Record<string, unknown>;
   idempotency_key: string;
 }): Promise<{ id: string; status: string }> {
-  if (apiBase) {
-    if (!supabase) throw new Error("Supabase is not configured.");
-    const { session } = await requireRole(["admin", "researcher"]);
-    const response = await fetch(apiBase + "/api/v1/jobs", {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: "Bearer " + session.access_token },
-      body: JSON.stringify(input),
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const message = (payload as { message?: string; error?: string }).message || (payload as { error?: string }).error;
-      throw new Error(message || "Unable to enqueue research job (" + response.status + ")");
-    }
-    return (payload as { data: { id: string; status: string } }).data;
+  if (!apiBase) throw new Error("队列 API 尚未配置；为避免创建无法执行的假队列任务，请先配置 VITE_API_BASE_URL。");
+  if (!supabase) throw new Error("Supabase is not configured.");
+  const { session } = await requireRole(["admin", "researcher"]);
+  const response = await fetch(apiBase + "/api/v1/jobs", {
+    method: "POST",
+    headers: { "content-type": "application/json", authorization: "Bearer " + session.access_token },
+    body: JSON.stringify(input),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = (payload as { message?: string; error?: string }).message || (payload as { error?: string }).error;
+    throw new Error(message || "Unable to enqueue research job (" + response.status + ")");
   }
-  const result = await rpc<{ data: { id: string; status: string } }>("urania_create_collection_job", {
-    p_job_type: input.job_type,
-    p_provider_key: input.provider_key || null,
-    p_market_country: input.market_country || null,
-    p_input_payload: input.input_payload || {},
-    p_idempotency_key: input.idempotency_key,
-  }, ["admin", "researcher"]);
-  return result.data;
+  return (payload as { data: { id: string; status: string } }).data;
 }
 
 export type CollectionJobRecord = {
@@ -416,4 +407,208 @@ export async function createProductScore(input:{
     p_confidence:input.confidence,p_score_version:input.score_version||"v1.0",p_notes:input.notes||null
   },["admin","researcher"]);
   return result.data;
+}
+
+
+export type ResearchProjectRecord = {
+  id:string; name:string; objective:string; status:string; geographies:string[];
+  industries:string[]; investment_horizon:string; investment_budget:Record<string,unknown>; approval_policy:string; created_at:string;
+};
+export type ResearchOpportunityRecord = {
+  id:string; project_id:string; title:string; summary:string|null; opportunity_type:string;
+  target_markets:string[]; stage:string; decision_status:string; created_at:string;
+};
+export type ResearchEvidenceRecord = {
+  id:string; finding_id:string|null; opportunity_id:string; evidence_source_id:string;
+  publisher:string|null; source_type:string; source_url:string|null; source_title:string|null;
+  evidence_class:string; claim_supported:string; metric_name:string|null; metric_value:number|null;
+  metric_unit:string|null; geography:string|null; published_at:string|null; observed_at:string|null;
+  collected_at:string; methodology:string|null; verification_status:string; confidence:number|null;
+};
+export async function listResearchProjects():Promise<ResearchProjectRecord[]> {
+  return await rpc<ResearchProjectRecord[]>("urania_research_list_projects",{},["admin","researcher"]);
+}
+export async function createResearchProject(input:{
+  name:string;objective:string;geographies?:string[];industries?:string[];
+  investment_horizon?:"under_1y"|"1_3y"|"3_5y"|"over_5y";
+  investment_budget?:Record<string,unknown>;approval_policy?:"owner"|"committee"|"tiered";
+}):Promise<ResearchProjectRecord> {
+  return await rpc<ResearchProjectRecord>("urania_research_create_project",{
+    p_name:input.name,p_objective:input.objective,p_geographies:input.geographies||[],
+    p_industries:input.industries||[],p_investment_horizon:input.investment_horizon||"1_3y",
+    p_investment_budget:input.investment_budget||{},p_approval_policy:input.approval_policy||"tiered"
+  },["admin","researcher"]);
+}
+export async function listResearchOpportunities(projectId:string):Promise<ResearchOpportunityRecord[]> {
+  return await rpc<ResearchOpportunityRecord[]>("urania_research_list_opportunities",{p_project_id:projectId},["admin","researcher"]);
+}
+export async function createResearchOpportunity(input:{
+  project_id:string;title:string;summary?:string;opportunity_type?:"product"|"software"|"service"|"technology"|"industry"|"business_model"|"other";target_markets?:string[];
+}):Promise<ResearchOpportunityRecord> {
+  return await rpc<ResearchOpportunityRecord>("urania_research_create_opportunity",{
+    p_project_id:input.project_id,p_title:input.title,p_summary:input.summary||null,
+    p_opportunity_type:input.opportunity_type||"product",p_target_markets:input.target_markets||[]
+  },["admin","researcher"]);
+}
+export async function createResearchFinding(input:{
+  opportunity_id:string;stage:string;claim:string;explanation?:string;
+  finding_type?:"claim"|"observation"|"estimate"|"contradiction"|"gap";confidence?:number|null;
+}):Promise<Record<string,unknown>> {
+  return await rpc<Record<string,unknown>>("urania_research_create_finding",{
+    p_opportunity_id:input.opportunity_id,p_stage:input.stage,p_claim:input.claim,
+    p_explanation:input.explanation||null,p_finding_type:input.finding_type||"claim",p_confidence:input.confidence??null
+  },["admin","researcher"]);
+}
+export async function createResearchEvidenceSource(input:{
+  publisher:string;source_type:string;source_url?:string;title?:string;license_name?:string;license_scope?:string;retention_days?:number|null;
+}):Promise<Record<string,unknown>> {
+  return await rpc<Record<string,unknown>>("urania_research_create_evidence_source",{
+    p_publisher:input.publisher,p_source_type:input.source_type,p_source_url:input.source_url||null,
+    p_title:input.title||null,p_license_name:input.license_name||null,p_license_scope:input.license_scope||null,
+    p_retention_days:input.retention_days??null
+  },["admin","researcher"]);
+}
+export async function createResearchEvidence(input:{
+  opportunity_id:string;evidence_source_id:string;evidence_class:string;claim_supported:string;finding_id?:string|null;
+  metric_name?:string;metric_value?:number|null;metric_unit?:string;geography?:string;
+  published_at?:string|null;observed_at?:string|null;methodology?:string;raw_excerpt?:string;confidence?:number|null;
+}):Promise<Record<string,unknown>> {
+  return await rpc<Record<string,unknown>>("urania_research_create_evidence_record",{
+    p_opportunity_id:input.opportunity_id,p_evidence_source_id:input.evidence_source_id,
+    p_evidence_class:input.evidence_class,p_claim_supported:input.claim_supported,p_finding_id:input.finding_id||null,
+    p_metric_name:input.metric_name||null,p_metric_value:input.metric_value??null,p_metric_unit:input.metric_unit||null,
+    p_geography:input.geography||null,p_published_at:input.published_at||null,p_observed_at:input.observed_at||null,
+    p_methodology:input.methodology||null,p_raw_excerpt:input.raw_excerpt||null,p_confidence:input.confidence??null
+  },["admin","researcher"]);
+}
+export async function listResearchEvidence(opportunityId:string):Promise<ResearchEvidenceRecord[]> {
+  return await rpc<ResearchEvidenceRecord[]>("urania_research_list_evidence",{p_opportunity_id:opportunityId},["admin","researcher"]);
+}
+
+export async function listResearchEvidenceSources():Promise<Array<{id:string;publisher:string;source_type:string;source_url:string|null;title:string|null;license_name:string|null;license_scope:string|null;created_at:string}>> {
+  return await rpc<Array<{id:string;publisher:string;source_type:string;source_url:string|null;title:string|null;license_name:string|null;license_scope:string|null;created_at:string}>>("urania_research_list_evidence_sources",{},["admin","researcher"]);
+}
+
+
+export type ResearchFinancialModelRecord = {
+  id:string;opportunity_id:string;model_version:number;currency:string;horizon_months:number;
+  inputs:Record<string,unknown>;outputs:Record<string,unknown>;calculation_engine_version:string;
+  status:string;calculated_at:string|null;created_at:string;
+};
+export async function saveResearchFinancialModel(input:{
+  opportunity_id:string;currency:string;horizon_months:number;inputs:Record<string,unknown>;
+  outputs:Record<string,unknown>;calculation_engine_version:string;assumptions_snapshot?:Record<string,unknown>;
+}):Promise<ResearchFinancialModelRecord>{
+  return await rpc<ResearchFinancialModelRecord>("urania_research_save_financial_model",{
+    p_opportunity_id:input.opportunity_id,p_currency:input.currency,p_horizon_months:input.horizon_months,
+    p_inputs:input.inputs,p_outputs:input.outputs,p_engine_version:input.calculation_engine_version,
+    p_assumptions_snapshot:input.assumptions_snapshot||{}
+  },["admin","researcher"]);
+}
+export async function listResearchFinancialModels(opportunityId:string):Promise<ResearchFinancialModelRecord[]>{
+  return await rpc<ResearchFinancialModelRecord[]>("urania_research_list_financial_models",{p_opportunity_id:opportunityId},["admin","researcher"]);
+}
+
+
+export type ResearchRiskRecord = {
+  id:string;opportunity_id:string;risk_category:string;description:string;severity:string;
+  likelihood:string;hard_veto:boolean;status:string;mitigation_plan:string|null;created_at:string;
+};
+export async function createResearchRisk(input:{
+  opportunity_id:string;risk_category:string;description:string;severity:string;likelihood:string;
+  hard_veto:boolean;mitigation_plan?:string;
+}):Promise<ResearchRiskRecord>{
+  return await rpc<ResearchRiskRecord>("urania_research_create_risk",{
+    p_opportunity_id:input.opportunity_id,p_risk_category:input.risk_category,p_description:input.description,
+    p_severity:input.severity,p_likelihood:input.likelihood,p_hard_veto:input.hard_veto,
+    p_mitigation_plan:input.mitigation_plan||null
+  },["admin","researcher"]);
+}
+export async function listResearchRisks(opportunityId:string):Promise<ResearchRiskRecord[]>{
+  return await rpc<ResearchRiskRecord[]>("urania_research_list_risks",{p_opportunity_id:opportunityId},["admin","researcher"]);
+}
+
+
+export async function verifyResearchEvidence(input:{evidence_id:string;status:"human_verified"|"disputed"|"rejected";note:string}):Promise<{id:string;verification_status:string;verified_by:string;verified_at:string}>{
+  return await rpc("urania_research_verify_evidence",{p_evidence_id:input.evidence_id,p_status:input.status,p_note:input.note},["admin","researcher"]);
+}
+
+
+export type ResearchFindingRecord = {
+  id:string;opportunity_id:string;stage:string;finding_type:string;claim:string;explanation:string|null;
+  evidence_status:string;confidence:number|null;freshness_status:string;model_generated:boolean;created_at:string;
+};
+export async function listResearchFindings(opportunityId:string):Promise<ResearchFindingRecord[]>{
+  return await rpc<ResearchFindingRecord[]>("urania_research_list_findings",{p_opportunity_id:opportunityId},["admin","researcher"]);
+}
+
+
+export type ResearchDecisionRecord = {
+  id:string;opportunity_id:string;decision:string;rationale:string;commercial_score:number|null;
+  evidence_coverage:number|null;hard_veto_triggered:boolean;model_version:string;financial_model_id:string|null;
+  status:string;approved_by:string|null;approved_at:string|null;created_at:string;
+};
+export async function submitResearchDecision(input:{
+  opportunity_id:string;decision:"invest"|"validate_more"|"defer"|"reject";rationale:string;
+  commercial_score?:number|null;evidence_coverage?:number|null;model_version?:string;financial_model_id?:string|null;
+}):Promise<ResearchDecisionRecord>{
+  return await rpc("urania_research_submit_decision",{
+    p_opportunity_id:input.opportunity_id,p_decision:input.decision,p_rationale:input.rationale,
+    p_commercial_score:input.commercial_score??null,p_evidence_coverage:input.evidence_coverage??null,
+    p_model_version:input.model_version||"urania-decision-v1",p_financial_model_id:input.financial_model_id||null
+  },["admin","researcher"]);
+}
+export async function approveResearchDecision(decisionId:string,note?:string):Promise<ResearchDecisionRecord>{
+  return await rpc("urania_research_approve_decision",{p_decision_id:decisionId,p_note:note||null},["admin"]);
+}
+export async function listResearchDecisions(opportunityId:string):Promise<ResearchDecisionRecord[]>{
+  return await rpc("urania_research_list_decisions",{p_opportunity_id:opportunityId},["admin","researcher"]);
+}
+
+
+export async function reviewResearchRisk(input:{risk_id:string;status:"open"|"mitigating"|"accepted"|"resolved"|"false_positive";note:string}):Promise<{id:string;status:string;reviewed_by:string;reviewed_at:string}>{
+ return await rpc("urania_research_review_risk",{p_risk_id:input.risk_id,p_status:input.status,p_note:input.note},["admin"]);
+}
+
+
+export type ResearchAssumptionRecord={id:string;opportunity_id:string;assumption_key:string;assumption_value:Record<string,unknown>;rationale:string|null;sensitivity:string;status:string;version:number;created_at:string};
+export async function saveResearchAssumption(input:{opportunity_id:string;assumption_key:string;assumption_value:Record<string,unknown>;rationale?:string;sensitivity?:"low"|"medium"|"high"|"critical";source_evidence_ids?:string[]}):Promise<ResearchAssumptionRecord>{
+ return await rpc("urania_research_save_assumption",{p_opportunity_id:input.opportunity_id,p_assumption_key:input.assumption_key,p_assumption_value:input.assumption_value,p_rationale:input.rationale||null,p_sensitivity:input.sensitivity||"high",p_source_evidence_ids:input.source_evidence_ids||[]},["admin","researcher"]);
+}
+export async function listResearchAssumptions(opportunityId:string):Promise<ResearchAssumptionRecord[]>{
+ return await rpc("urania_research_list_assumptions",{p_opportunity_id:opportunityId},["admin","researcher"]);
+}
+
+
+export async function createAIResearchJob(input:{
+ opportunity_id:string;query:string;stage:string;context?:string;provider_key:"openai_api"|"anthropic_api"|"google_gemini_api";
+ market_country?:string;idempotency_key:string;
+}):Promise<{id:string;status:string}>{
+ if(!input.opportunity_id||input.query.trim().length<5)throw new Error("研究机会和至少 5 个字符的研究问题为必填项。");
+ return createCollectionJob({job_type:"research.ai_analysis",provider_key:input.provider_key,market_country:input.market_country||null,
+  input_payload:{query:input.query.trim(),stage:input.stage,context:input.context||"",opportunity_id:input.opportunity_id},
+  idempotency_key:input.idempotency_key});
+}
+
+
+export type ResearchAuditEvent={event_type:string;entity_id:string;action:string;previous_status:string|null;new_status:string|null;note:string|null;actor_id:string|null;created_at:string};
+export async function listResearchAuditEvents(opportunityId:string):Promise<ResearchAuditEvent[]>{
+ return await rpc("urania_research_list_audit_events",{p_opportunity_id:opportunityId},["admin","researcher"]);
+}
+
+
+export type ResearchSearchResultRecord={id:string;job_id:string;query:string;rank:number;title:string;url:string|null;snippet:string|null;displayed_url:string|null;market_country:string|null;observed_at:string;fetched_at:string};
+export async function createResearchSearchJob(input:{opportunity_id:string;query:string;market_country?:string;idempotency_key:string}):Promise<{id:string;status:string}>{
+ if(!input.opportunity_id||input.query.trim().length<2)throw new Error("研究机会和搜索词为必填项。");
+ return createCollectionJob({job_type:"research.search",provider_key:"serpapi",market_country:input.market_country||null,
+  input_payload:{query:input.query.trim(),opportunity_id:input.opportunity_id},idempotency_key:input.idempotency_key});
+}
+export async function listResearchSearchResults(opportunityId:string):Promise<ResearchSearchResultRecord[]>{
+ return await rpc("urania_research_list_search_results",{p_opportunity_id:opportunityId},["admin","researcher"]);
+}
+
+
+export type ResearchRunRecord={id:string;opportunity_id:string;run_type:string;status:string;model_provider:string|null;model_name:string|null;prompt_version:string|null;input_scope:Record<string,unknown>;output_summary:Record<string,unknown>;started_at:string|null;finished_at:string|null;created_at:string};
+export async function listResearchRuns(opportunityId:string):Promise<ResearchRunRecord[]>{
+ return await rpc("urania_research_list_runs",{p_opportunity_id:opportunityId},["admin","researcher"]);
 }

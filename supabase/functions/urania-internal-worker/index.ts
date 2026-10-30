@@ -5,6 +5,7 @@ const ALLOWED_ACTIONS = new Set([
   "urania_worker_get_provider",
   "urania_worker_update_job",
   "urania_worker_store_search_results",
+  "urania_worker_save_ai_research",
 ]);
 
 const corsHeaders = {

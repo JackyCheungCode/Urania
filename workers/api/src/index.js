@@ -25,7 +25,31 @@ const ALLOWED_RPCS = {
   urania_list_orders: { method: "POST", roles: ["admin", "sales"] },
   urania_create_order: { method: "POST", roles: ["admin", "sales"] },
   urania_create_profit_scenario: { method: "POST", roles: ["admin", "researcher", "sales"] },
-  urania_create_product_score: { method: "POST", roles: ["admin", "researcher"] }
+  urania_create_product_score: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_create_project: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_list_projects: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_create_opportunity: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_list_opportunities: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_create_finding: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_create_evidence_source: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_create_evidence_record: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_list_evidence: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_list_evidence_sources: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_save_financial_model: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_list_financial_models: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_create_risk: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_list_risks: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_review_risk: { method: "POST", roles: ["admin"] },
+  urania_research_verify_evidence: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_list_findings: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_submit_decision: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_approve_decision: { method: "POST", roles: ["admin"] },
+  urania_research_list_decisions: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_save_assumption: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_list_assumptions: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_list_audit_events: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_list_search_results: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_list_runs: { method: "POST", roles: ["admin", "researcher"] }
 };
 
 function isConfiguredValue(value) {
@@ -85,7 +109,7 @@ export async function handle(request, env) {
       version: "0.2.0",
       endpoints: ["GET /health", "GET /api/v1/status", "POST /api/v1/rpc/:allowlisted_function", "POST /api/v1/jobs"],
       auth: "Supabase access token required for RPC calls",
-      dataProviders: "catalog only; third-party providers are not configured by this API"
+      dataProviders: "approved server-side providers only; credentials remain in Supabase Vault; AI analysis does not imply live web research"
     }, 200, headers);
   }
   if (url.pathname === "/api/v1/jobs" && request.method === "POST") {
@@ -108,7 +132,7 @@ export async function handle(request, env) {
     } catch {
       return json({ error: "invalid_json" }, 400, headers);
     }
-    const allowedJobTypes = ["research.search", "research.refresh", "provider.health_check", "product.enrich", "crm.company_discovery", "crm.contact_enrichment"];
+    const allowedJobTypes = ["research.search", "research.refresh", "research.ai_analysis", "provider.health_check", "product.enrich", "crm.company_discovery", "crm.contact_enrichment"];
     if (!allowedJobTypes.includes(job.job_type)) return json({ error: "job_type_not_allowed" }, 400, headers);
     if (typeof job.idempotency_key !== "string" || job.idempotency_key.length < 8 || job.idempotency_key.length > 160) {
       return json({ error: "invalid_idempotency_key" }, 400, headers);
