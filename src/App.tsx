@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { Button as CarbonButton, InlineNotification, PasswordInput, TextInput, TextArea, Checkbox, Select, SelectItem, Table as CarbonTable, TableHead, TableRow, TableHeader, TableBody, TableCell } from "@carbon/react";
+import { Button as CarbonButton, InlineNotification, PasswordInput, TextInput, TextArea, Checkbox, Select, SelectItem, Table as CarbonTable, TableHead, TableRow, TableHeader, TableBody, TableCell, Tile, Grid, Column, SideNav, SideNavItems, SideNavLink, Modal } from "@carbon/react";
 import { supabase } from "./lib/supabase";
 import CRMExtras from "./components/CRMExtras";
 import ProfitCalculator from "./components/ProfitCalculator";
@@ -64,11 +64,11 @@ function SectionTitle({ title, action, onAction }: { title: string; action?: str
   return <div className="section-title"><h2>{title}</h2>{action && <CarbonButton className="text-action" onClick={onAction}>{action}<ArrowRight size={14} /></CarbonButton>}</div>;
 }
 function MetricCard({ label, value, change, icon: Icon, tone, note }: { label: string; value: string; change: string; icon: typeof TrendingUp; tone: string; note: string }) {
-  return <article className="metric-card">
+  return <Tile className="metric-card">
     <div className="metric-top"><span>{label}</span><span className={`metric-icon metric-icon--${tone}`}><Icon size={17} /></span></div>
     <div className="metric-value">{value}</div>
     <div className="metric-foot"><span className="positive"><ArrowUpRight size={13} />{change}</span><span className="muted">{note}</span></div>
-  </article>;
+  </Tile>;
 }
 
 function LoginScreen({ onLogin }: { onLogin: (email: string, password: string) => Promise<void> }) {
@@ -151,7 +151,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => Promise<void> }) {
 
   return <div className="app-shell">
     {mobileNav && <CarbonButton className="mobile-scrim" aria-label="关闭菜单" onClick={() => setMobileNav(false)} />}
-    <aside className={`sidebar ${mobileNav ? "sidebar--open" : ""}`}>
+    <SideNav aria-label="Urania 主导航" expanded isFixedNav className={`sidebar ${mobileNav ? "sidebar--open" : ""}`}>
       <div className="brand">
         <div className="brand-mark"><Sparkles size={20} strokeWidth={2.2} /></div>
         <div><div className="brand-name">urania<span>.</span></div><div className="brand-sub">GLOBAL INTELLIGENCE</div></div>
@@ -161,23 +161,19 @@ function Dashboard({ onSignOut }: { onSignOut: () => Promise<void> }) {
         <div className="workspace-avatar">U</div><div className="workspace-copy"><strong>Urania Workspace</strong><span>内部工作区</span></div><ChevronDown size={15} className="muted" />
       </div>
       <div className="nav-label">工作空间</div>
-      <nav className="nav-list">
-        {primaryNav.map((item) => <CarbonButton key={item.id} className={`nav-item ${page === item.id ? "nav-item--active" : ""}`} onClick={() => go(item.id)}>
-          <item.icon size={17} strokeWidth={1.8} /><span>{item.label}</span>{item.badge && <span className="nav-count">{item.badge}</span>}
-        </CarbonButton>)}
-      </nav>
+      <SideNavItems className="nav-list">
+        {primaryNav.map((item) => <SideNavLink key={item.id} href={`#${item.id}`} isActive={page === item.id} renderIcon={item.icon} onClick={(event) => { event.preventDefault(); go(item.id); }}>{item.label}{item.badge && <span className="nav-count">{item.badge}</span>}</SideNavLink>)}
+      </SideNavItems>
       <div className="nav-label nav-label--system">系统管理</div>
-      <nav className="nav-list">
-        {systemNav.map((item) => <CarbonButton key={item.id} className={`nav-item ${page === item.id ? "nav-item--active" : ""}`} onClick={() => go(item.id)}>
-          <item.icon size={17} strokeWidth={1.8} /><span>{item.label}</span>
-        </CarbonButton>)}
-      </nav>
+      <SideNavItems className="nav-list">
+        {systemNav.map((item) => <SideNavLink key={item.id} href={`#${item.id}`} isActive={page === item.id} renderIcon={item.icon} onClick={(event) => { event.preventDefault(); go(item.id); }}>{item.label}</SideNavLink>)}
+      </SideNavItems>
       <div className="sidebar-spacer" />
       <div className="sidebar-status"><span className="status-dot status-dot--warning" /><div><strong>运行状态待核验</strong><span>连接器与部署需检查</span></div><MoreHorizontal size={16} /></div>
       <CarbonButton className="profile profile-signout" type="button" onClick={() => { void onSignOut().catch(() => { setNotice("退出登录失败，请检查网络后重试。"); }); }} aria-label="退出 Urania 工作区">
         <div className="profile-avatar">U</div><div className="profile-copy"><strong>退出工作区</strong><span>安全退出当前账号</span></div><ArrowRight size={17} />
       </CarbonButton>
-    </aside>
+    </SideNav>
 
     <main className="main-area">
       <header className="topbar">
