@@ -25,3 +25,12 @@ test("the application bootstraps Carbon styles and a supported Carbon theme", as
   assert.match(main, /<Theme theme="white">/);
   assert.match(styles, /^@use ['"]@carbon\/react['"];/);
 });
+
+
+test("global shell uses Carbon layout, navigation, tiles and modal primitives", async () => {
+  const app = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
+  for (const component of ["Grid", "Column", "Tile", "SideNav", "SideNavItems", "SideNavLink", "Modal"]) {
+    assert.match(app, new RegExp("<" + component + "\\b"), `App.tsx must compose ${component}`);
+  }
+  assert.doesNotMatch(app, /provider-modal-backdrop|role="dialog" aria-modal="true"/, "credential dialog must use Carbon Modal");
+});
