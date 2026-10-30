@@ -5,7 +5,7 @@ import ResearchScorePanel from "./ResearchScorePanel";
 import { Button, Checkbox, InlineNotification, Select, SelectItem, TextArea, TextInput, Tile } from "@carbon/react";
 import {
   createResearchProject, listResearchProjects, createResearchOpportunity, listResearchOpportunities,
-  createResearchEvidenceSource, createResearchEvidence, listResearchEvidence, listResearchEvidenceSources, createResearchFinding, createResearchRisk, listResearchRisks, verifyResearchEvidence, type ResearchRiskRecord, listResearchFindings, type ResearchFindingRecord, submitResearchDecision, approveResearchDecision, listResearchDecisions, type ResearchDecisionRecord, reviewResearchRisk, createAIResearchJob, listResearchAuditEvents, type ResearchAuditEvent,
+  createResearchEvidenceSource, createResearchEvidence, listResearchEvidence, listResearchEvidenceSources, createResearchFinding, createResearchRisk, listResearchRisks, verifyResearchEvidence, type ResearchRiskRecord, listResearchFindings, type ResearchFindingRecord, submitResearchDecision, approveResearchDecision, listResearchDecisions, type ResearchDecisionRecord, reviewResearchRisk, createAIResearchJob, listResearchAuditEvents, type ResearchAuditEvent, listResearchFinancialModels,
   type ResearchProjectRecord, type ResearchOpportunityRecord, type ResearchEvidenceRecord
 } from "../lib/api";
 
@@ -104,7 +104,7 @@ export default function ResearchPortfolioWorkspace() {
   }
   async function submitDecision(e:FormEvent) {
     e.preventDefault();if(!opportunityId)return;setBusy(true);setError("");setNotice("");
-    try {await submitResearchDecision({opportunity_id:opportunityId,decision:decisionChoice,rationale:decisionRationale,model_version:"urania-decision-v1"});setDecisionRationale("");setDecisions(await listResearchDecisions(opportunityId));setNotice("投资建议已提交审批队列；提交不代表批准。");}
+    try {const models=await listResearchFinancialModels(opportunityId);const latestModel=models[0];await submitResearchDecision({opportunity_id:opportunityId,decision:decisionChoice,rationale:decisionRationale,model_version:"urania-decision-v1",financial_model_id:latestModel?.id||null});setDecisionRationale("");setDecisions(await listResearchDecisions(opportunityId));setNotice("投资建议已提交审批队列；提交不代表批准。");}
     catch(err){setError(err instanceof Error?err.message:"投资建议提交失败。");}finally{setBusy(false);}
   }
   async function approveDecision(id:string) {
