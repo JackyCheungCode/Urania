@@ -3,7 +3,7 @@ import InvestmentModelPanel from "./InvestmentModelPanel";
 import { Button, Checkbox, InlineNotification, Select, SelectItem, TextArea, TextInput, Tile } from "@carbon/react";
 import {
   createResearchProject, listResearchProjects, createResearchOpportunity, listResearchOpportunities,
-  createResearchEvidenceSource, createResearchEvidence, listResearchEvidence, listResearchEvidenceSources, createResearchFinding, createResearchRisk, listResearchRisks, verifyResearchEvidence, type ResearchRiskRecord, listResearchFindings, type ResearchFindingRecord,
+  createResearchEvidenceSource, createResearchEvidence, listResearchEvidence, listResearchEvidenceSources, createResearchFinding, createResearchRisk, listResearchRisks, verifyResearchEvidence, type ResearchRiskRecord, listResearchFindings, type ResearchFindingRecord, submitResearchDecision, approveResearchDecision, listResearchDecisions, type ResearchDecisionRecord,
   type ResearchProjectRecord, type ResearchOpportunityRecord, type ResearchEvidenceRecord
 } from "../lib/api";
 
@@ -43,6 +43,9 @@ export default function ResearchPortfolioWorkspace() {
   const [riskVeto,setRiskVeto]=useState(false);
   const [verificationStatus,setVerificationStatus]=useState<"human_verified"|"disputed"|"rejected">("human_verified");
   const [verificationNote,setVerificationNote]=useState("");
+  const [decisions,setDecisions]=useState<ResearchDecisionRecord[]>([]);
+  const [decisionChoice,setDecisionChoice]=useState<"invest"|"validate_more"|"defer"|"reject">("validate_more");
+  const [decisionRationale,setDecisionRationale]=useState("");
 
   async function loadProjects() {
     const rows=await listResearchProjects();setProjects(rows);
@@ -59,7 +62,7 @@ export default function ResearchPortfolioWorkspace() {
   }
   useEffect(()=>{void loadProjects().catch(e=>setError(e instanceof Error?e.message:"无法读取研究项目。"));void listResearchEvidenceSources().then(rows=>{setSourceIds(rows.map(s=>({id:s.id,label:s.publisher+(s.title?" · "+s.title:"")})));if(rows[0])setSourceId(rows[0].id);}).catch(e=>setError(e instanceof Error?e.message:"无法读取来源目录。"));},[]);
   useEffect(()=>{void loadOpportunities(projectId).catch(e=>setError(e instanceof Error?e.message:"无法读取机会。"));},[projectId]);
-  useEffect(()=>{void loadEvidence(opportunityId).catch(e=>setError(e instanceof Error?e.message:"无法读取证据。"));if(opportunityId){void listResearchRisks(opportunityId).then(setRisks).catch(e=>setError(e instanceof Error?e.message:"无法读取风险登记簿。"));void listResearchFindings(opportunityId).then(setFindings).catch(e=>setError(e instanceof Error?e.message:"无法读取阶段结论。"));}else{setRisks([]);setFindings([]);}},[opportunityId]);
+  useEffect(()=>{void loadEvidence(opportunityId).catch(e=>setError(e instanceof Error?e.message:"无法读取证据。"));if(opportunityId){void listResearchRisks(opportunityId).then(setRisks).catch(e=>setError(e instanceof Error?e.message:"无法读取风险登记簿。"));void listResearchFindings(opportunityId).then(setFindings).catch(e=>setError(e instanceof Error?e.message:"无法读取阶段结论。"));void listResearchDecisions(opportunityId).then(setDecisions).catch(e=>setError(e instanceof Error?e.message:"无法读取投资决策历史。"));}else{setRisks([]);setFindings([]);setDecisions([]);}},[opportunityId]);
 
   async function saveProject(e:FormEvent) {
     e.preventDefault();setBusy(true);setError("");setNotice("");
@@ -80,6 +83,16 @@ export default function ResearchPortfolioWorkspace() {
     e.preventDefault();if(!opportunityId)return;setBusy(true);setError("");setNotice("");
     try {await createResearchFinding({opportunity_id:opportunityId,stage:findingStage,claim:findingClaim,explanation:findingExplanation||undefined,finding_type:findingType as "claim"|"observation"|"estimate"|"contradiction"|"gap"});setFindings(await listResearchFindings(opportunityId));setFindingClaim("");setFindingExplanation("");setNotice("研究阶段结论已保存；未关联证据的结论仍保持证据不足。");}
     catch(err){setError(err instanceof Error?err.message:"保存研究结论失败。");}finally{setBusy(false);}
+  }
+  async function submitDecision(e:FormEvent) {
+    e.preventDefault();if(!opportunityId)return;setBusy(true);setError("");setNotice("");
+    try {await submitResearchDecision({opportunity_id:opportunityId,decision:decisionChoice,rationale:decisionRationale,model_version:"urania-decision-v1"});setDecisionRationale("");setDecisions(await listResearchDecisions(opportunityId));setNotice("投资建议已提交审批队列；提交不代表批准。");}
+    catch(err){setError(err instanceof Error?err.message:"投资建议提交失败。");}finally{setBusy(false);}
+  }
+  async function approveDecision(id:string) {
+    setBusy(true);setError("");setNotice("");
+    try {await approveResearchDecision(id,"管理员人工审批");if(opportunityId)setDecisions(await listResearchDecisions(opportunityId));setNotice("投资决策已批准并写入审计记录。");}
+    catch(err){setError(err instanceof Error?err.message:"审批失败；请确认管理员权限且不存在未解除硬性否决风险。");}finally{setBusy(false);}
   }
   async function verifyEvidence(id:string) {
     if(!verificationNote.trim())return;setBusy(true);setError("");setNotice("");
@@ -191,6 +204,18 @@ export default function ResearchPortfolioWorkspace() {
           <Button type="submit" size="sm" disabled={busy||!opportunityId}>登记风险</Button>
         </form>
         <div className="research-portfolio-list">{risks.map(r=><div key={r.id} className="research-portfolio-row"><strong>{r.description}</strong><span>{r.risk_category} · {r.severity} · {r.status} {r.hard_veto?" · 硬性否决":""}</span></div>)}{risks.length===0&&<p className="muted">当前机会尚无风险记录。</p>}</div>
+      </section>
+    </div>
+    <div className="research-portfolio-grid">
+      <section className="research-portfolio-section">
+        <h3>07 · 投资审批</h3>
+        <p className="panel-note">研究员只能提交建议。最终批准由管理员执行；服务端会重新检查未解除的硬性否决风险，任何评分都不能绕过该检查。</p>
+        <form onSubmit={submitDecision} className="research-portfolio-form">
+          <Select id="research-decision-choice" labelText="建议决策" value={decisionChoice} onChange={e=>setDecisionChoice(e.target.value as "invest"|"validate_more"|"defer"|"reject")}><SelectItem value="invest" text="建议投资"/><SelectItem value="validate_more" text="继续验证"/><SelectItem value="defer" text="暂缓"/><SelectItem value="reject" text="拒绝"/></Select>
+          <TextArea id="research-decision-rationale" labelText="决策依据（至少 10 字）" value={decisionRationale} onChange={e=>setDecisionRationale(e.target.value)} required rows={3}/>
+          <Button type="submit" size="sm" disabled={busy||!opportunityId||decisionRationale.trim().length<10}>提交审批</Button>
+        </form>
+        <div className="research-portfolio-list">{decisions.map(d=><div key={d.id} className="research-portfolio-row"><strong>{d.decision} · {d.status}{d.hard_veto_triggered?" · 曾触发硬性否决":""}</strong><span>{d.rationale}</span>{d.status==="pending"&&<Button size="sm" kind="tertiary" disabled={busy||d.hard_veto_triggered} onClick={()=>void approveDecision(d.id)}>管理员批准</Button>}</div>)}{decisions.length===0&&<p className="muted">尚无投资审批记录。</p>}</div>
       </section>
     </div>
     <section className="research-portfolio-evidence">
