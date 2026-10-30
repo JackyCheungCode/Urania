@@ -19,6 +19,17 @@ create index if not exists research_projects_org_idx on research.research_projec
 create index if not exists organization_members_user_idx on research.organization_members(user_id,organization_id);
 alter table research.organizations enable row level security;
 alter table research.organization_members enable row level security;
+
+create or replace function research.is_org_member(p_org_id uuid)
+returns boolean language sql stable security definer set search_path=''
+as $ select exists(select 1 from research.organization_members m where m.organization_id=p_org_id and m.user_id=(select auth.uid())) $;
+create or replace function research.has_org_role(p_org_id uuid,p_roles text[])
+returns boolean language sql stable security definer set search_path=''
+as $ select exists(select 1 from research.organization_members m where m.organization_id=p_org_id and m.user_id=(select auth.uid()) and m.role=any(p_roles)) $;
+revoke all on function research.is_org_member(uuid) from public,anon;
+revoke all on function research.has_org_role(uuid,text[]) from public,anon;
+grant execute on function research.is_org_member(uuid),research.has_org_role(uuid,text[]) to authenticated;
+
 create or replace function research.can_access_project(p_project_id uuid,p_min_role text default 'viewer')
 returns boolean language sql stable security definer set search_path=''
 as $$
@@ -46,17 +57,17 @@ create policy research_projects_org_delete on research.research_projects for del
 using (research.can_access_project(id,'owner'));
 drop policy if exists organizations_member_read on research.organizations;
 create policy organizations_member_read on research.organizations for select to authenticated
-using (exists(select 1 from research.organization_members m where m.organization_id=id and m.user_id=(select auth.uid())));
+using (research.is_org_member(id));
 drop policy if exists organizations_owner_insert on research.organizations;
 create policy organizations_owner_insert on research.organizations for insert to authenticated
 with check(created_by=(select auth.uid()));
 drop policy if exists organization_members_member_read on research.organization_members;
 create policy organization_members_member_read on research.organization_members for select to authenticated
-using(exists(select 1 from research.organization_members m where m.organization_id=organization_id and m.user_id=(select auth.uid())));
+using(research.is_org_member(organization_id));
 drop policy if exists organization_members_admin_manage on research.organization_members;
 create policy organization_members_admin_manage on research.organization_members for all to authenticated
-using(exists(select 1 from research.organization_members m where m.organization_id=organization_id and m.user_id=(select auth.uid()) and m.role in ('owner','admin')))
-with check(exists(select 1 from research.organization_members m where m.organization_id=organization_id and m.user_id=(select auth.uid()) and m.role in ('owner','admin')));
+using(research.has_org_role(organization_id,array['owner','admin']))
+with check(research.has_org_role(organization_id,array['owner','admin']));
 -- Replace owner predicates on all child tables with project membership checks.
 drop policy if exists research_runs_parent_owner_all on research.research_runs;
 create policy research_runs_org_all on research.research_runs for all to authenticated
@@ -87,3 +98,27 @@ drop policy if exists investment_decisions_parent_owner_all on research.investme
 create policy investment_decisions_org_all on research.investment_decisions for all to authenticated
 using(exists(select 1 from research.opportunities o where o.id=opportunity_id and research.can_access_project(o.project_id,'reviewer')))
 with check(exists(select 1 from research.opportunities o where o.id=opportunity_id and research.can_access_project(o.project_id,'researcher')));
+
+
+create or replace function public.urania_research_create_organization(p_name text,p_slug text)
+returns jsonb language plpgsql security invoker set search_path=''
+as $$
+declare v_org research.organizations;
+begin
+ if auth.uid() is null then raise exception 'authentication_required' using errcode='42501'; end if;
+ insert into research.organizations(name,slug,created_by) values(trim(p_name),lower(trim(p_slug)),auth.uid()) returning * into v_org;
+ insert into research.organization_members(organization_id,user_id,role,invited_by) values(v_org.id,auth.uid(),'owner',auth.uid());
+ return jsonb_build_object('id',v_org.id,'name',v_org.name,'slug',v_org.slug,'role','owner');
+end $$;
+create or replace function public.urania_research_add_organization_member(p_org_id uuid,p_user_id uuid,p_role text)
+returns jsonb language plpgsql security invoker set search_path=''
+as $$
+begin
+ if not research.has_org_role(p_org_id,array['owner','admin']) then raise exception 'organization_admin_required' using errcode='42501'; end if;
+ if p_role not in ('admin','researcher','reviewer','viewer') then raise exception 'invalid_member_role' using errcode='22023'; end if;
+ insert into research.organization_members(organization_id,user_id,role,invited_by) values(p_org_id,p_user_id,p_role,auth.uid())
+ on conflict(organization_id,user_id) do update set role=excluded.role;
+ return jsonb_build_object('organization_id',p_org_id,'user_id',p_user_id,'role',p_role);
+end $$;
+revoke all on function public.urania_research_create_organization(text,text),public.urania_research_add_organization_member(uuid,uuid,text) from public,anon;
+grant execute on function public.urania_research_create_organization(text,text),public.urania_research_add_organization_member(uuid,uuid,text) to authenticated;
