@@ -109,3 +109,83 @@ label{color:#393939}
 .provider-modal-content .provider-key-input{display:flex;align-items:center;gap:var(--cds-spacing-03)}
 .provider-modal-content .provider-attestation{display:flex;align-items:flex-start;gap:var(--cds-spacing-03);line-height:1.5}
 .provider-modal-content .provider-apply-link{justify-self:start}
+
+/* Carbon responsive grid contract: 16 columns / 8 columns / 4 columns. */
+.metric-grid.cds--css-grid,.crm-metrics.cds--css-grid,.dashboard-grid.cds--css-grid,.lower-grid.cds--css-grid,
+.research-cards.cds--css-grid,.intelligence-grid.cds--css-grid,.integration-summary.cds--css-grid,.settings-grid.cds--css-grid{
+  display:grid;
+  grid-template-columns:repeat(16,minmax(0,1fr));
+  column-gap:var(--cds-grid-gutter,1rem);
+  row-gap:var(--cds-spacing-05);
+  width:100%;
+  margin-inline:0;
+}
+.metric-grid.cds--css-grid>.cds--col,.crm-metrics.cds--css-grid>.cds--col,
+.dashboard-grid.cds--css-grid>.cds--col,.lower-grid.cds--css-grid>.cds--col,
+.research-cards.cds--css-grid>.cds--col,.intelligence-grid.cds--css-grid>.cds--col,
+.integration-summary.cds--css-grid>.cds--col,.settings-grid.cds--css-grid>.cds--col{min-width:0}
+.cds--tile.panel{background:var(--cds-layer-01);border:1px solid var(--cds-border-subtle-01);min-width:0}
+.cds--tile.panel>.section-title{padding-top:var(--cds-spacing-05)}
+.cds--tile.panel .panel-note{color:var(--cds-text-secondary)}
+.search-popover{border-radius:0;box-shadow:var(--cds-shadow);border-color:var(--cds-border-subtle-01)}
+.search-popover .cds--btn{width:100%;justify-content:flex-start;text-align:left}
+.toast{border-radius:0;background:var(--cds-inverse-background);color:var(--cds-inverse-text)}
+@media(max-width:1055px){
+  .metric-grid.cds--css-grid,.crm-metrics.cds--css-grid,.dashboard-grid.cds--css-grid,.lower-grid.cds--css-grid,
+  .research-cards.cds--css-grid,.intelligence-grid.cds--css-grid,.integration-summary.cds--css-grid,.settings-grid.cds--css-grid{
+    grid-template-columns:repeat(8,minmax(0,1fr));
+  }
+  .dashboard-grid.cds--css-grid>.cds--col,.lower-grid.cds--css-grid>.cds--col{grid-column:span 8}
+}
+@media(max-width:671px){
+  .metric-grid.cds--css-grid,.crm-metrics.cds--css-grid,.dashboard-grid.cds--css-grid,.lower-grid.cds--css-grid,
+  .research-cards.cds--css-grid,.intelligence-grid.cds--css-grid,.integration-summary.cds--css-grid,.settings-grid.cds--css-grid{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    row-gap:var(--cds-spacing-04);
+  }
+  .metric-grid.cds--css-grid>.cds--col,.crm-metrics.cds--css-grid>.cds--col,
+  .dashboard-grid.cds--css-grid>.cds--col,.lower-grid.cds--css-grid>.cds--col,
+  .research-cards.cds--css-grid>.cds--col,.intelligence-grid.cds--css-grid>.cds--col,
+  .integration-summary.cds--css-grid>.cds--col,.settings-grid.cds--css-grid>.cds--col{grid-column:span 4}
+  .page-heading{flex-wrap:wrap;align-items:flex-start}
+  .heading-actions{width:100%;flex-wrap:wrap}
+  .heading-actions .cds--btn{flex:1 1 auto;min-width:0}
+  .crm-toolbar .summary-actions{width:100%;flex-wrap:wrap}
+  .crm-toolbar .summary-actions .cds--btn{min-width:0}
+  .connector-row{align-items:flex-start}
+  .connector-row .provider-apply-link{margin-left:46px}
+  .workflow-actions{flex-wrap:wrap}
+  .provider-modal-content{min-width:0}
+}
+@media(max-width:390px){
+  .topbar{padding-inline:9px}
+  .topbar-actions{gap:5px}
+  .global-search{width:clamp(104px,34vw,128px);min-width:0;padding-inline:6px}
+  .breadcrumbs{gap:6px;font-size:9px}
+  .page-content{padding-inline:10px}
+  .page-heading h1{font-size:20px}
+  .page-heading p{max-width:100%;font-size:10px}
+  .welcome-banner{padding:14px;min-height:150px}
+  .welcome-copy h2{font-size:15px}
+  .metric-grid.cds--css-grid{column-gap:8px}
+  .metric-grid .cds--col{padding-inline:4px}
+  .metric-card{padding:9px}
+  .metric-value{font-size:18px}
+  .crm-metrics .metric-value{font-size:16px}
+  .integration-banner{gap:8px}
+  .connector-row .button,.connector-row .cds--btn{max-width:100%;white-space:normal}
+  .account-form{margin:8px;padding:12px}
+  .page-footer>span:nth-child(2){margin-left:0}
+}
+@media(max-width:360px){
+  .topbar{padding-inline:7px}
+  .global-search{width:108px}
+  .breadcrumbs>span:first-child,.crumb-slash{display:none}
+  .page-content{padding-inline:8px}
+  .heading-actions .cds--btn{padding-inline:9px;font-size:11px}
+  .metric-card{padding:8px}
+  .metric-value{font-size:17px}
+  .metric-foot{align-items:flex-start}
+  .research-summary .summary-actions>*{max-width:100%}
+  .profit-input-grid,.score-components,.score-risk-grid{grid-template-columns:1fr}
+}
