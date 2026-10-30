@@ -92,7 +92,7 @@ function parseResearchOutput(content) {
   })).filter(item=>item.claim.trim().length>=5);
   return {summary:String(parsed.summary||"AI analysis completed; evidence is not verified.").slice(0,4000),findings};
 }
-async function processAIResearch(env,job,providerKey,provider,started) {
+async function processAIResearch(env,job,providerKey,provider,started,stageJobId=job.job_id,updateStatus=true) {
   if(!AI_PROVIDERS[providerKey]) throw new Error("ai_provider_not_supported");
   if(!job.requested_by||!job.input_payload?.opportunity_id) throw new Error("ai_research_scope_required");
   const apiKey=provider?.api_key;
@@ -100,14 +100,36 @@ async function processAIResearch(env,job,providerKey,provider,started) {
   const answer=await requestAI(providerKey,apiKey,job);
   const output=parseResearchOutput(answer.content);
   const saved=await rpc(env,"urania_worker_save_ai_research",{
-    p_job_id:job.job_id,p_opportunity_id:job.input_payload.opportunity_id,p_requested_by:job.requested_by,
+    p_job_id:stageJobId,p_opportunity_id:job.input_payload.opportunity_id,p_requested_by:job.requested_by,
     p_provider_key:providerKey,p_model_name:answer.model,p_prompt_version:"urania-research-prompt-v2",
-    p_input_scope:{query:job.input_payload.query,stage:job.input_payload.stage||"discovery",context_included:Boolean(job.input_payload.context)},
+    p_input_scope:{query:job.input_payload.query,stage:job.input_payload.stage||"discovery",pipeline_job_id:job.job_id,context_included:Boolean(job.input_payload.context)},
     p_output_summary:{summary:output.summary,generated_findings:output.findings.length,latency_ms:Date.now()-started},
     p_findings:output.findings
   });
-  await setJobStatus(env,job.job_id,"succeeded");
+  if(updateStatus) await setJobStatus(env,job.job_id,"succeeded");
   return saved;
+}
+
+const RESEARCH_PIPELINE_STAGES=["discovery","standardization","demand","competition","customer","supply_chain","compliance","financial","investment"];
+async function stageJobUuid(jobId,stage){
+ const digest=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(jobId+":"+stage));
+ const bytes=new Uint8Array(digest).slice(0,16);bytes[6]=(bytes[6]&15)|80;bytes[8]=(bytes[8]&63)|128;
+ const hex=[...bytes].map(x=>x.toString(16).padStart(2,"0")).join("");
+ return hex.slice(0,8)+"-"+hex.slice(8,12)+"-"+hex.slice(12,16)+"-"+hex.slice(16,20)+"-"+hex.slice(20);
+}
+async function processResearchPipeline(env,job,providerKey,provider,started){
+ if(!job.requested_by||!job.input_payload?.opportunity_id)throw new Error("ai_research_scope_required");
+ let context=String(job.input_payload.context||"").slice(0,10000);
+ const completed=[];
+ for(const stage of RESEARCH_PIPELINE_STAGES){
+  const stageId=await stageJobUuid(job.job_id,stage);
+  const stageJob={...job,input_payload:{...job.input_payload,stage,context}};
+  const saved=await processAIResearch(env,stageJob,providerKey,provider,started,stageId,false);
+  completed.push({stage,research_run_id:saved?.research_run_id,finding_count:saved?.finding_count||0});
+  context=(context+"\n\n["+stage+"] "+String(saved?.summary||"")+" Generated findings: "+String(saved?.finding_count||0)+".").slice(-12000);
+ }
+ await setJobStatus(env,job.job_id,"succeeded");
+ return {stages_completed:completed};
 }
 
 async function processMessage(message, env) {
@@ -151,6 +173,18 @@ async function processMessage(message, env) {
 
   const started = Date.now();
   try {
+    if(job.job_type==="research.pipeline") {
+      try {
+        const saved=await processResearchPipeline(env,job,providerKey,provider,started);
+        console.log("research_pipeline_completed",JSON.stringify({job_id:job.job_id,stages_completed:saved.stages_completed}));
+        message.ack();
+      } catch (error) {
+        const code=String(error?.message||"");
+        if(["ai_auth_or_request_error","ai_provider_not_supported","provider_not_configured","ai_research_scope_required"].includes(code)) await failAndAck(message,env,code,"Research pipeline configuration or authorization is invalid.");
+        else await retryOrFail(message,env,job,code.startsWith("ai_")?code:"research_pipeline_failed","Research pipeline failed; completed stages are idempotent and will be skipped on retry.");
+      }
+      return;
+    }
     if(job.job_type==="research.ai_analysis") {
       try {
         const saved=await processAIResearch(env,job,providerKey,provider,started);
