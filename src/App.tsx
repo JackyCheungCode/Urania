@@ -508,7 +508,7 @@ function Intelligence({ toast }: { toast: (s: string) => void }) {
   return <>
     <div className="welcome-banner welcome-banner--simple"><div className="welcome-orb"><Globe2 size={22} /></div><div className="welcome-copy"><span>ONE EVIDENCE LAYER</span><h2>每条结论，都能回到它的来源。</h2><p>标准化连接器、实体解析与证据记录将支撑产品研究和 CRM，不把搜索代理指标误当作实际交易。</p></div></div>
     <CarbonLayoutGrid className="intelligence-grid" lg={5}>{cards.map((card) => <Tile className="panel intelligence-card" key={card.title}><div className="intelligence-card-top"><span className="feature-icon feature-icon--blue"><card.icon size={19} /></span><Badge>{card.tag}</Badge></div><h3>{card.title}</h3><p>{card.desc}</p><CarbonButton className="text-action" onClick={() => toast(`${card.title} 的数据管线将在连接器与证据层完成后启用`)}>打开模块<ArrowRight size={13} /></CarbonButton></Tile>)}</CarbonLayoutGrid>
-    <Tile className="panel"><SectionTitle title="数据证据规范" /><div className="evidence-grid"><div><span className="evidence-mark evidence-mark--green">T1</span><strong>直接观测 / 交易数据</strong><p>已授权的订单、实际交易记录、经确认的供应商报价。</p></div><div><span className="evidence-mark evidence-mark--blue">T2</span><strong>代理指标</strong><p>排名、评论数、搜索趋势、在售商品数等信号。</p></div><div><span className="evidence-mark evidence-mark--amber">T3</span><strong>模型估算</strong><p>估算销量、市场规模、利润预测，必须记录方法和区间。</p></div></div></Tile>
+    <Tile className="panel"><SectionTitle title="数据证据规范" /><CarbonLayoutGrid className="evidence-grid" lg={5}><div><span className="evidence-mark evidence-mark--green">T1</span><strong>直接观测 / 交易数据</strong><p>已授权的订单、实际交易记录、经确认的供应商报价。</p></div><div><span className="evidence-mark evidence-mark--blue">T2</span><strong>代理指标</strong><p>排名、评论数、搜索趋势、在售商品数等信号。</p></div><div><span className="evidence-mark evidence-mark--amber">T3</span><strong>模型估算</strong><p>估算销量、市场规模、利润预测，必须记录方法和区间。</p></div></CarbonLayoutGrid></Tile>
   </>;
 }
 
@@ -694,7 +694,7 @@ function Integrations({ toast }: { toast: (s: string) => void }) {
         </div>
       </Modal>}
       <div className="panel-note"><ShieldCheck size={14}/>密钥使用 Supabase Vault 加密存储，数据库目录只保留 Secret 引用；只有管理员可以写入，密钥不会被 API 返回。当前已实现 SerpApi 的真实搜索适配器；其他供应商可以安全保存凭证并记录授权状态，但必须在接入对应服务端适配器后才能执行真实调用。</div></Tile>
-    <Tile className="panel"><SectionTitle title="连接器接入原则" /><div className="evidence-grid"><div><span className="evidence-mark evidence-mark--green">01</span><strong>许可先行</strong><p>确认 API 权限、数据用途、保留周期和商业使用范围。</p></div><div><span className="evidence-mark evidence-mark--blue">02</span><strong>统一标准</strong><p>映射为标准记录，并保留供应商原始响应和来源时间。</p></div><div><span className="evidence-mark evidence-mark--amber">03</span><strong>成本可控</strong><p>设置缓存、速率限制、预算上限和失败重试策略。</p></div></div></Tile>
+    <Tile className="panel"><SectionTitle title="连接器接入原则" /><CarbonLayoutGrid className="evidence-grid" lg={5}><div><span className="evidence-mark evidence-mark--green">01</span><strong>许可先行</strong><p>确认 API 权限、数据用途、保留周期和商业使用范围。</p></div><div><span className="evidence-mark evidence-mark--blue">02</span><strong>统一标准</strong><p>映射为标准记录，并保留供应商原始响应和来源时间。</p></div><div><span className="evidence-mark evidence-mark--amber">03</span><strong>成本可控</strong><p>设置缓存、速率限制、预算上限和失败重试策略。</p></div></CarbonLayoutGrid></Tile>
   </>;
 }
 
