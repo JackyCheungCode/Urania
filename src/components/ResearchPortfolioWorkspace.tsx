@@ -87,6 +87,7 @@ export default function ResearchPortfolioWorkspace() {
   useEffect(()=>{void loadOpportunities(projectId).catch(e=>setError(e instanceof Error?e.message:"无法读取机会。"));},[projectId]);
   useEffect(()=>{void loadEvidence(opportunityId).catch(e=>setError(e instanceof Error?e.message:"无法读取证据。"));if(opportunityId){void listResearchRisks(opportunityId).then(setRisks).catch(e=>setError(e instanceof Error?e.message:"无法读取风险登记簿。"));void listResearchFindings(opportunityId).then(setFindings).catch(e=>setError(e instanceof Error?e.message:"无法读取阶段结论。"));void listResearchDecisions(opportunityId).then(setDecisions).catch(e=>setError(e instanceof Error?e.message:"无法读取投资决策历史。"));void listResearchAuditEvents(opportunityId).then(setAuditEvents).catch(e=>setError(e instanceof Error?e.message:"无法读取审计时间线。"));}else{setRisks([]);setFindings([]);setDecisions([]);setAuditEvents([]);}},[opportunityId]);
 
+  async function refreshAudit(){if(opportunityId)setAuditEvents(await listResearchAuditEvents(opportunityId));}
   async function saveProject(e:FormEvent) {
     e.preventDefault();setBusy(true);setError("");setNotice("");
     try {const row=await createResearchProject({name:projectName,objective,geographies:["global"],investment_horizon:projectHorizon,investment_budget:budgetAmount.trim()?{amount:Number(budgetAmount),currency:budgetCurrency}: {},approval_policy:approvalPolicy});setProjectName("");setObjective("");setBudgetAmount("");await loadProjects();setProjectId(row.id);setNotice("研究项目已建立。");}
@@ -109,7 +110,7 @@ export default function ResearchPortfolioWorkspace() {
   }
   async function reviewRisk(id:string) {
     if(riskReviewNote.trim().length<8)return;setBusy(true);setError("");setNotice("");
-    try {await reviewResearchRisk({risk_id:id,status:riskReviewStatus,note:riskReviewNote});setRiskReviewNote("");if(opportunityId)setRisks(await listResearchRisks(opportunityId));setNotice("风险状态已更新，审查说明已写入审计历史。");}
+    try {await reviewResearchRisk({risk_id:id,status:riskReviewStatus,note:riskReviewNote});setRiskReviewNote("");if(opportunityId)setRisks(await listResearchRisks(opportunityId));await refreshAudit();setNotice("风险状态已更新，审查说明已写入审计历史。");}
     catch(err){setError(err instanceof Error?err.message:"风险审查失败；请确认管理员权限。");}finally{setBusy(false);}
   }
   async function queueAIResearch(e:FormEvent) {
@@ -119,17 +120,17 @@ export default function ResearchPortfolioWorkspace() {
   }
   async function submitDecision(e:FormEvent) {
     e.preventDefault();if(!opportunityId)return;setBusy(true);setError("");setNotice("");
-    try {const models=await listResearchFinancialModels(opportunityId);const latestModel=models[0];await submitResearchDecision({opportunity_id:opportunityId,decision:decisionChoice,rationale:decisionRationale,model_version:"urania-decision-v1",financial_model_id:latestModel?.id||null,commercial_score:scoreSnapshot?.commercialScore??null,evidence_coverage:scoreSnapshot?.evidenceCoverage??null});setDecisionRationale("");setDecisions(await listResearchDecisions(opportunityId));setNotice("投资建议已提交审批队列；提交不代表批准。");}
+    try {const models=await listResearchFinancialModels(opportunityId);const latestModel=models[0];await submitResearchDecision({opportunity_id:opportunityId,decision:decisionChoice,rationale:decisionRationale,model_version:"urania-decision-v1",financial_model_id:latestModel?.id||null,commercial_score:scoreSnapshot?.commercialScore??null,evidence_coverage:scoreSnapshot?.evidenceCoverage??null});setDecisionRationale("");setDecisions(await listResearchDecisions(opportunityId));await refreshAudit();setNotice("投资建议已提交审批队列；提交不代表批准。");}
     catch(err){setError(err instanceof Error?err.message:"投资建议提交失败。");}finally{setBusy(false);}
   }
   async function approveDecision(id:string) {
     setBusy(true);setError("");setNotice("");
-    try {await approveResearchDecision(id,"管理员人工审批");if(opportunityId)setDecisions(await listResearchDecisions(opportunityId));setNotice("投资决策已批准并写入审计记录。");}
+    try {await approveResearchDecision(id,"管理员人工审批");if(opportunityId)setDecisions(await listResearchDecisions(opportunityId));await refreshAudit();setNotice("投资决策已批准并写入审计记录。");}
     catch(err){setError(err instanceof Error?err.message:"审批失败；请确认管理员权限且不存在未解除硬性否决风险。");}finally{setBusy(false);}
   }
   async function verifyEvidence(id:string) {
     if(!verificationNote.trim())return;setBusy(true);setError("");setNotice("");
-    try {await verifyResearchEvidence({evidence_id:id,status:verificationStatus,note:verificationNote});setVerificationNote("");if(opportunityId)await loadEvidence(opportunityId);setNotice("证据核验状态已更新，并写入审计历史。");}
+    try {await verifyResearchEvidence({evidence_id:id,status:verificationStatus,note:verificationNote});setVerificationNote("");if(opportunityId)await loadEvidence(opportunityId);await refreshAudit();setNotice("证据核验状态已更新，并写入审计历史。");}
     catch(err){setError(err instanceof Error?err.message:"证据核验失败。");}finally{setBusy(false);}
   }
   async function saveRisk(e:FormEvent) {
