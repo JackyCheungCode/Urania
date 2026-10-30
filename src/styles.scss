@@ -207,3 +207,8 @@ label{color:#393939}
   .page-content{padding-inline:18px}
   .dashboard-grid.cds--css-grid>.cds--css-grid-column,.lower-grid.cds--css-grid>.cds--css-grid-column{grid-column:span 8}
 }
+
+@media(max-width:671px){
+  .crm-tabs{max-width:100%;overflow-x:auto;overflow-y:hidden;white-space:nowrap;scrollbar-width:thin}
+  .crm-tabs .cds--btn{flex:0 0 auto;white-space:nowrap}
+}
