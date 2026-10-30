@@ -493,3 +493,7 @@ export async function createResearchEvidence(input:{
 export async function listResearchEvidence(opportunityId:string):Promise<ResearchEvidenceRecord[]> {
   return await rpc<ResearchEvidenceRecord[]>("urania_research_list_evidence",{p_opportunity_id:opportunityId},["admin","researcher"]);
 }
+
+export async function listResearchEvidenceSources():Promise<Array<{id:string;publisher:string;source_type:string;source_url:string|null;title:string|null;license_name:string|null;license_scope:string|null;created_at:string}>> {
+  return await rpc("urania_research_list_evidence_sources",{},["admin","researcher"]);
+}
