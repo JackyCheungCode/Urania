@@ -10,11 +10,21 @@ A finding is a research statement, not proof. Evidence records retain a source r
 
 `src/lib/investment-model.ts` is a deterministic calculation module, versioned as `urania-investment-v1.0`. It produces downside, base and upside cases. Model snapshots are stored in `research.financial_models` with incrementing per-opportunity versions. Inputs remain assumptions; outputs are not actual performance, a tax opinion or investment advice.
 
-The current v1 model is a simplified annual operating cash-flow model. It does not yet include detailed monthly working-capital schedules, depreciation, debt financing, FX translation, jurisdiction-specific tax, terminal value or a fully integrated TAM/SAM/SOM-to-revenue bridge. These require explicit inputs and should not be silently inferred.
+The current v1 model is a simplified annual operating cash-flow model with terminal recovery of working capital and fractional-period NPV/IRR discounting. It does not yet include detailed monthly working-capital schedules, depreciation, debt financing, FX translation, jurisdiction-specific tax, terminal value or a fully integrated TAM/SAM/SOM-to-revenue bridge. These require explicit inputs and should not be silently inferred.
+
+TAM/SAM is now calculated through separate top-down and bottom-up paths. The UI reports the gap and a simple reconciliation average; the average is not a statistical confidence interval. SOM is constrained by sales lead/conversion capacity, delivery capacity and SAM rather than a fixed SAM percentage. Market sizing inputs are saved as versioned, unverified assumptions.
 
 ## Risk controls
 
-Risks are recorded independently of commercial scoring. An active hard-veto risk is surfaced as a blocking warning and must not be offset by a high score or attractive NPV. The current release provides risk capture and visibility; the final investment-decision transition must enforce veto checks server-side before any approval is possible.
+Risks are recorded independently of commercial scoring. An active hard-veto risk is surfaced as a blocking warning and must not be offset by a high score or attractive NPV. Risk capture and admin review are audited. The decision submission and admin approval RPC re-check active hard-veto risks server-side; an active veto blocks an `invest` approval regardless of score. Non-investment outcomes such as reject/defer remain possible.
+
+## AI research execution
+
+The queue consumer now supports server-side OpenAI, Anthropic and Gemini analysis adapters. Provider credentials are resolved from Supabase Vault through the internal worker RPC and are never sent to the browser. AI jobs require an active provider and explicit authorization approval. Generated findings are persisted with model/prompt metadata and always start as `evidence_status=insufficient`; the adapter prompt prohibits fabricated sources and observed facts. This release analyzes the supplied question/context only; it does not yet automatically browse the web or transform search results into linked evidence records. A separate search collection job and human evidence review remain necessary.
+
+## Decision scoring and audit
+
+The deterministic commercial score uses fixed weights: demand 15%, growth 10%, accessibility 10%, competitive advantage 15%, willingness to pay 10%, profitability/cash flow 20%, supply chain 10%, scalability 10%. Evidence readiness is calculated separately. The score is a ranking aid, never an approval. Evidence verification, risk status changes and investment decision transitions are exposed through an owner-scoped unified audit timeline.
 
 ## Database and API boundary
 
@@ -24,8 +34,8 @@ Research tables are in the private `research` schema and are protected by RLS. P
 
 1. Apply the research migrations to a disposable/staging Supabase branch.
 2. Run Supabase security and performance advisors; resolve findings before promotion.
-3. Test owner isolation with two authenticated accounts, including evidence source, evidence record, risk, and financial model cross-owner attempts.
-4. Run `npm run typecheck`, `node --test tests/*.test.mjs`, and `npm run build`.
+3. Test owner isolation with two authenticated accounts, including evidence source, evidence record, risk, assumption, financial model, research run and decision cross-owner attempts.
+4. Run `npm run typecheck`, `node --test tests/*.test.mjs`, and `npm run build` (latest CI is still being corrected; do not treat previous failing runs as green).
 5. Deploy the internal worker and Cloudflare API/queue workers to a non-production environment; verify queue retries, DLQ behaviour, provider authorization and secret handling.
 6. Complete authenticated browser E2E tests before merging the draft PR or deploying production.
 
