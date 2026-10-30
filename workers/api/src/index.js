@@ -25,7 +25,12 @@ const ALLOWED_RPCS = {
   urania_list_orders: { method: "POST", roles: ["admin", "sales"] },
   urania_create_order: { method: "POST", roles: ["admin", "sales"] },
   urania_create_profit_scenario: { method: "POST", roles: ["admin", "researcher", "sales"] },
-  urania_create_product_score: { method: "POST", roles: ["admin", "researcher"] }
+  urania_create_product_score: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_create_project: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_list_projects: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_create_opportunity: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_list_opportunities: { method: "POST", roles: ["admin", "researcher"] },
+  urania_research_create_finding: { method: "POST", roles: ["admin", "researcher"] }
 };
 
 function isConfiguredValue(value) {
