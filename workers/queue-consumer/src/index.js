@@ -73,7 +73,7 @@ async function requestAI(providerKey, apiKey, job) {
     if(!response.ok) throw new Error(response.status===429?"ai_rate_limited":response.status>=500?"ai_provider_unavailable":"ai_auth_or_request_error");
     return {model:raw.model||config.model,content:(raw.content||[]).filter(x=>x.type==="text").map(x=>x.text).join("\n")};
   }
-  response=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+config.model+":generateContent?key="+encodeURIComponent(apiKey),{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({systemInstruction:{parts:[{text:prompt.system}]},contents:[{role:"user",parts:[{text:prompt.user}]}],generationConfig:{temperature:0.1,responseMimeType:"application/json",maxOutputTokens:3000}}),signal:AbortSignal.timeout(45000)});
+  response=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+config.model+":generateContent?key="+encodeURIComponent(apiKey),{method:"POST",headers:{"content-type":"application/json","x-goog-api-key":apiKey},body:JSON.stringify({systemInstruction:{parts:[{text:prompt.system}]},contents:[{role:"user",parts:[{text:prompt.user}]}],generationConfig:{temperature:0.1,responseMimeType:"application/json",maxOutputTokens:3000}}),signal:AbortSignal.timeout(45000)});
   raw=await response.json();
   if(!response.ok) throw new Error(response.status===429?"ai_rate_limited":response.status>=500?"ai_provider_unavailable":"ai_auth_or_request_error");
   return {model:config.model,content:raw.candidates?.[0]?.content?.parts?.map(x=>x.text||"").join("\n")};
@@ -152,9 +152,18 @@ async function processMessage(message, env) {
   const started = Date.now();
   try {
     if(job.job_type==="research.ai_analysis") {
-      const saved=await processAIResearch(env,job,providerKey,provider,started);
-      console.log("ai_research_saved",JSON.stringify({job_id:job.job_id,research_run_id:saved?.research_run_id,finding_count:saved?.finding_count}));
-      message.ack();
+      try {
+        const saved=await processAIResearch(env,job,providerKey,provider,started);
+        console.log("ai_research_saved",JSON.stringify({job_id:job.job_id,research_run_id:saved?.research_run_id,finding_count:saved?.finding_count}));
+        message.ack();
+      } catch (error) {
+        const code=String(error?.message||"");
+        if(["ai_auth_or_request_error","ai_provider_not_supported","provider_not_configured","ai_research_scope_required"].includes(code)) {
+          await failAndAck(message,env,code,"AI provider authorization, credentials, model support, or research scope is invalid. Review Integration Center configuration.");
+        } else {
+          await retryOrFail(message,env,job,code.startsWith("ai_")?code:"ai_research_failed","AI research analysis failed; inspect provider status and worker telemetry.");
+        }
+      }
       return;
     }
     let results = [];
