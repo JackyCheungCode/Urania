@@ -41,3 +41,62 @@ revoke all on function public.urania_research_create_risk(uuid,text,text,text,te
 revoke all on function public.urania_research_list_risks(uuid) from public, anon;
 grant execute on function public.urania_research_create_risk(uuid,text,text,text,text,boolean,text) to authenticated;
 grant execute on function public.urania_research_list_risks(uuid) to authenticated;
+
+
+create table if not exists research.risk_audit_events(
+ id bigint generated always as identity primary key,
+ risk_id uuid not null references research.risk_register(id) on delete cascade,
+ previous_status text not null,
+ new_status text not null check(new_status in ('open','mitigating','accepted','resolved','false_positive')),
+ note text not null,
+ actor_id uuid not null references auth.users(id),
+ created_at timestamptz not null default now()
+);
+create index if not exists risk_audit_events_risk_time_idx on research.risk_audit_events(risk_id,created_at desc);
+alter table research.risk_audit_events enable row level security;
+create policy risk_audit_events_owner_read on research.risk_audit_events for select to authenticated using(
+ exists(select 1 from research.risk_register r join research.opportunities o on o.id=r.opportunity_id
+ join research.research_projects p on p.id=o.project_id where r.id=risk_id and p.created_by=(select auth.uid()))
+);
+grant select on research.risk_audit_events to authenticated;
+grant usage,select on sequence research.risk_audit_events_id_seq to authenticated;
+
+create or replace function research.capture_risk_status_event()
+returns trigger language plpgsql security definer set search_path=''
+as $$
+begin
+ if new.status is distinct from old.status then
+  insert into research.risk_audit_events(risk_id,previous_status,new_status,note,actor_id)
+  values(new.id,old.status,new.status,
+    coalesce(nullif(new.reviewed_at::text,''),'Risk status changed through authorized workflow.'),
+    coalesce(auth.uid(),new.reviewed_by,new.created_by));
+ end if;
+ return new;
+end $$;
+revoke all on function research.capture_risk_status_event() from public,anon,authenticated;
+drop trigger if exists risk_status_audit_trigger on research.risk_register;
+create trigger risk_status_audit_trigger after update of status on research.risk_register
+for each row execute function research.capture_risk_status_event();
+
+create or replace function public.urania_research_review_risk(p_risk_id uuid,p_status text,p_note text)
+returns jsonb language plpgsql security invoker set search_path=''
+as $$
+declare v_row research.risk_register; v_role text;
+begin
+ if auth.uid() is null then raise exception 'authentication_required' using errcode='42501'; end if;
+ v_role:=coalesce(auth.jwt()->'app_metadata'->>'urania_role','');
+ if v_role<>'admin' then raise exception 'admin_risk_review_required' using errcode='42501'; end if;
+ if p_status not in ('open','mitigating','accepted','resolved','false_positive') or length(trim(coalesce(p_note,'')))<8 then
+  raise exception 'risk_review_status_and_note_required' using errcode='22023';
+ end if;
+ update research.risk_register r set status=p_status,reviewed_by=auth.uid(),reviewed_at=now(),
+   mitigation_plan=case when p_status in ('mitigating','resolved','accepted') then coalesce(r.mitigation_plan,'')||case when r.mitigation_plan is null then '' else E'\n' end||trim(p_note) else r.mitigation_plan end
+ where r.id=p_risk_id and r.created_by=auth.uid()
+ and exists(select 1 from research.opportunities o join research.research_projects p on p.id=o.project_id
+   where o.id=r.opportunity_id and p.created_by=auth.uid())
+ returning r.* into v_row;
+ if not found then raise exception 'risk_not_found_or_not_owned' using errcode='P0002'; end if;
+ return jsonb_build_object('id',v_row.id,'status',v_row.status,'reviewed_by',v_row.reviewed_by,'reviewed_at',v_row.reviewed_at);
+end $$;
+revoke all on function public.urania_research_review_risk(uuid,text,text) from public,anon;
+grant execute on function public.urania_research_review_risk(uuid,text,text) to authenticated;
