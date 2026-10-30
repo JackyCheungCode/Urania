@@ -97,3 +97,22 @@ revoke all on function public.urania_research_submit_decision(uuid,text,text,num
 revoke all on function public.urania_research_approve_decision(uuid,text) from public,anon;
 grant execute on function public.urania_research_submit_decision(uuid,text,text,numeric,numeric,text,uuid) to authenticated;
 grant execute on function public.urania_research_approve_decision(uuid,text) to authenticated;
+
+
+create or replace function public.urania_research_list_decisions(p_opportunity_id uuid)
+returns setof jsonb
+language sql stable security invoker set search_path = ''
+as $$
+  select jsonb_build_object('id',d.id,'opportunity_id',d.opportunity_id,'decision',d.decision,
+    'rationale',d.rationale,'commercial_score',d.commercial_score,'evidence_coverage',d.evidence_coverage,
+    'hard_veto_triggered',d.hard_veto_triggered,'model_version',d.model_version,
+    'financial_model_id',d.financial_model_id,'status',d.status,'approved_by',d.approved_by,
+    'approved_at',d.approved_at,'created_at',d.created_at)
+  from research.investment_decisions d
+  join research.opportunities o on o.id=d.opportunity_id
+  join research.research_projects p on p.id=o.project_id
+  where d.opportunity_id=p_opportunity_id and p.created_by=auth.uid()
+  order by d.created_at desc
+$$;
+revoke all on function public.urania_research_list_decisions(uuid) from public,anon;
+grant execute on function public.urania_research_list_decisions(uuid) to authenticated;
