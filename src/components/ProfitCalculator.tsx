@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { Calculator, CheckmarkFilled, Save, Security } from "@carbon/icons-react";
+import { Calculator, Save, Security } from "@carbon/icons-react";
 import { Button, InlineNotification, Select, SelectItem, TextInput, TextArea } from "@carbon/react";
 import { createProfitScenario, type ProductRecord } from "../lib/api";
 import { isSupabaseConfigured } from "../lib/supabase";
