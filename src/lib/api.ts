@@ -550,3 +550,26 @@ export type ResearchFindingRecord = {
 export async function listResearchFindings(opportunityId:string):Promise<ResearchFindingRecord[]>{
   return await rpc<ResearchFindingRecord[]>("urania_research_list_findings",{p_opportunity_id:opportunityId},["admin","researcher"]);
 }
+
+
+export type ResearchDecisionRecord = {
+  id:string;opportunity_id:string;decision:string;rationale:string;commercial_score:number|null;
+  evidence_coverage:number|null;hard_veto_triggered:boolean;model_version:string;financial_model_id:string|null;
+  status:string;approved_by:string|null;approved_at:string|null;created_at:string;
+};
+export async function submitResearchDecision(input:{
+  opportunity_id:string;decision:"invest"|"validate_more"|"defer"|"reject";rationale:string;
+  commercial_score?:number|null;evidence_coverage?:number|null;model_version?:string;financial_model_id?:string|null;
+}):Promise<ResearchDecisionRecord>{
+  return await rpc("urania_research_submit_decision",{
+    p_opportunity_id:input.opportunity_id,p_decision:input.decision,p_rationale:input.rationale,
+    p_commercial_score:input.commercial_score??null,p_evidence_coverage:input.evidence_coverage??null,
+    p_model_version:input.model_version||"urania-decision-v1",p_financial_model_id:input.financial_model_id||null
+  },["admin","researcher"]);
+}
+export async function approveResearchDecision(decisionId:string,note?:string):Promise<ResearchDecisionRecord>{
+  return await rpc("urania_research_approve_decision",{p_decision_id:decisionId,p_note:note||null},["admin"]);
+}
+export async function listResearchDecisions(opportunityId:string):Promise<ResearchDecisionRecord[]>{
+  return await rpc("urania_research_list_decisions",{p_opportunity_id:opportunityId},["admin","researcher"]);
+}
