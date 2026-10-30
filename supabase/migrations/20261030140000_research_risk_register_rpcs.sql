@@ -68,7 +68,7 @@ begin
  if new.status is distinct from old.status then
   insert into research.risk_audit_events(risk_id,previous_status,new_status,note,actor_id)
   values(new.id,old.status,new.status,
-    coalesce(nullif(new.reviewed_at::text,''),'Risk status changed through authorized workflow.'),
+    coalesce(nullif(new.mitigation_plan,''),'Risk status changed through authorized workflow.'),
     coalesce(auth.uid(),new.reviewed_by,new.created_by));
  end if;
  return new;
