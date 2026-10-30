@@ -1,9 +1,9 @@
 import { useEffect, useState, type FormEvent } from "react";
 import InvestmentModelPanel from "./InvestmentModelPanel";
-import { Button, InlineNotification, Select, SelectItem, TextArea, TextInput, Tile } from "@carbon/react";
+import { Button, Checkbox, InlineNotification, Select, SelectItem, TextArea, TextInput, Tile } from "@carbon/react";
 import {
   createResearchProject, listResearchProjects, createResearchOpportunity, listResearchOpportunities,
-  createResearchEvidenceSource, createResearchEvidence, listResearchEvidence, listResearchEvidenceSources, createResearchFinding,
+  createResearchEvidenceSource, createResearchEvidence, listResearchEvidence, listResearchEvidenceSources, createResearchFinding, createResearchRisk, listResearchRisks, type ResearchRiskRecord,
   type ResearchProjectRecord, type ResearchOpportunityRecord, type ResearchEvidenceRecord
 } from "../lib/api";
 
@@ -33,6 +33,13 @@ export default function ResearchPortfolioWorkspace() {
   const [findingType,setFindingType]=useState("claim");
   const [findingClaim,setFindingClaim]=useState("");
   const [findingExplanation,setFindingExplanation]=useState("");
+  const [risks,setRisks]=useState<ResearchRiskRecord[]>([]);
+  const [riskCategory,setRiskCategory]=useState("regulatory");
+  const [riskSeverity,setRiskSeverity]=useState("high");
+  const [riskLikelihood,setRiskLikelihood]=useState("medium");
+  const [riskDescription,setRiskDescription]=useState("");
+  const [riskMitigation,setRiskMitigation]=useState("");
+  const [riskVeto,setRiskVeto]=useState(false);
 
   async function loadProjects() {
     const rows=await listResearchProjects();setProjects(rows);
@@ -49,7 +56,7 @@ export default function ResearchPortfolioWorkspace() {
   }
   useEffect(()=>{void loadProjects().catch(e=>setError(e instanceof Error?e.message:"无法读取研究项目。"));void listResearchEvidenceSources().then(rows=>{setSourceIds(rows.map(s=>({id:s.id,label:s.publisher+(s.title?" · "+s.title:"")})));if(rows[0])setSourceId(rows[0].id);}).catch(e=>setError(e instanceof Error?e.message:"无法读取来源目录。"));},[]);
   useEffect(()=>{void loadOpportunities(projectId).catch(e=>setError(e instanceof Error?e.message:"无法读取机会。"));},[projectId]);
-  useEffect(()=>{void loadEvidence(opportunityId).catch(e=>setError(e instanceof Error?e.message:"无法读取证据。"));},[opportunityId]);
+  useEffect(()=>{void loadEvidence(opportunityId).catch(e=>setError(e instanceof Error?e.message:"无法读取证据。"));if(opportunityId)void listResearchRisks(opportunityId).then(setRisks).catch(e=>setError(e instanceof Error?e.message:"无法读取风险登记簿。"));else setRisks([]);},[opportunityId]);
 
   async function saveProject(e:FormEvent) {
     e.preventDefault();setBusy(true);setError("");setNotice("");
@@ -70,6 +77,11 @@ export default function ResearchPortfolioWorkspace() {
     e.preventDefault();if(!opportunityId)return;setBusy(true);setError("");setNotice("");
     try {await createResearchFinding({opportunity_id:opportunityId,stage:findingStage,claim:findingClaim,explanation:findingExplanation||undefined,finding_type:findingType as "claim"|"observation"|"estimate"|"contradiction"|"gap"});setFindingClaim("");setFindingExplanation("");setNotice("研究阶段结论已保存；未关联证据的结论仍保持证据不足。");}
     catch(err){setError(err instanceof Error?err.message:"保存研究结论失败。");}finally{setBusy(false);}
+  }
+  async function saveRisk(e:FormEvent) {
+    e.preventDefault();if(!opportunityId)return;setBusy(true);setError("");setNotice("");
+    try {await createResearchRisk({opportunity_id:opportunityId,risk_category:riskCategory,description:riskDescription,severity:riskSeverity,likelihood:riskLikelihood,hard_veto:riskVeto,mitigation_plan:riskMitigation||undefined});setRiskDescription("");setRiskMitigation("");setRiskVeto(false);setRisks(await listResearchRisks(opportunityId));setNotice("风险记录已保存；未解决的硬性否决项将阻止进入投资批准流程。");}
+    catch(err){setError(err instanceof Error?err.message:"风险记录保存失败。");}finally{setBusy(false);}
   }
   async function saveEvidence(e:FormEvent) {
     e.preventDefault();if(!opportunityId||!sourceId)return;setBusy(true);setError("");setNotice("");
@@ -155,6 +167,22 @@ export default function ResearchPortfolioWorkspace() {
         </form>
       </section>
       <InvestmentModelPanel opportunityId={opportunityId} />
+    </div>
+    <div className="research-portfolio-grid">
+      <section className="research-portfolio-section">
+        <h3>06 · 合规风险与硬性否决</h3>
+        <p className="panel-note">硬性否决是独立约束，不会被商业评分或财务回报抵消。录入风险不代表风险已解决；当前版本只支持登记与查看。</p>
+        <form onSubmit={saveRisk} className="research-portfolio-form">
+          <Select id="research-risk-category" labelText="风险类别" value={riskCategory} onChange={e=>setRiskCategory(e.target.value)}>{["legal","regulatory","sanctions","ip","safety","environmental","labor","supplier","market","financial","execution","reputation","other"].map(v=><SelectItem key={v} value={v} text={v}/>)}</Select>
+          <Select id="research-risk-severity" labelText="严重程度" value={riskSeverity} onChange={e=>setRiskSeverity(e.target.value)}><SelectItem value="low" text="低"/><SelectItem value="medium" text="中"/><SelectItem value="high" text="高"/><SelectItem value="critical" text="严重"/></Select>
+          <Select id="research-risk-likelihood" labelText="发生可能性" value={riskLikelihood} onChange={e=>setRiskLikelihood(e.target.value)}><SelectItem value="unknown" text="未知"/><SelectItem value="low" text="低"/><SelectItem value="medium" text="中"/><SelectItem value="high" text="高"/></Select>
+          <TextArea id="research-risk-description" labelText="风险描述" value={riskDescription} onChange={e=>setRiskDescription(e.target.value)} required rows={2}/>
+          <TextArea id="research-risk-mitigation" labelText="缓解措施 / 核验计划" value={riskMitigation} onChange={e=>setRiskMitigation(e.target.value)} rows={2}/>
+          <Checkbox id="research-risk-veto" labelText="设为硬性否决项（未解除前不得批准投资）" checked={riskVeto} onChange={(_,data)=>setRiskVeto(data.checked)}/>
+          <Button type="submit" size="sm" disabled={busy||!opportunityId}>登记风险</Button>
+        </form>
+        <div className="research-portfolio-list">{risks.map(r=><div key={r.id} className="research-portfolio-row"><strong>{r.description}</strong><span>{r.risk_category} · {r.severity} · {r.status} {r.hard_veto?" · 硬性否决":""}</span></div>)}{risks.length===0&&<p className="muted">当前机会尚无风险记录。</p>}</div>
+      </section>
     </div>
     <section className="research-portfolio-evidence">
       <h3>证据时间线 <span className="muted">· {evidence.length} 条</span></h3>
