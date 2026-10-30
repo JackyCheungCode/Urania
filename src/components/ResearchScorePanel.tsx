@@ -6,7 +6,8 @@ const initialEvidence:EvidenceQualityInputs={coverage:0,quality:0,freshness:0,un
 const labels:Record<keyof ResearchScoreInputs,string>={marketDemand:"市场需求",growth:"市场增长",accessibility:"市场可进入性",competitiveAdvantage:"竞争优势",willingnessToPay:"支付意愿",profitabilityCashflow:"盈利与现金流",supplyChain:"供应链",scalability:"扩展性"};
 export default function ResearchScorePanel({opportunityId,activeHardVeto,onScoreChange}:{opportunityId:string;activeHardVeto:boolean;onScoreChange?:(value:{commercialScore:number;evidenceCoverage:number;evidenceReadiness:number})=>void}){
  const [scores,setScores]=useState(initialScores);const [evidence,setEvidence]=useState(initialEvidence);
- useEffect(()=>{setScores(initialScores);setEvidence(initialEvidence);},[opportunityId]);\n const errors=useMemo(()=>validateResearchScoreInputs(scores,evidence),[scores,evidence]);
+ useEffect(()=>{setScores(initialScores);setEvidence(initialEvidence);},[opportunityId]);
+ const errors=useMemo(()=>validateResearchScoreInputs(scores,evidence),[scores,evidence]);
  const result=useMemo(()=>errors.length?null:calculateResearchScore(scores,evidence,activeHardVeto),[scores,evidence,activeHardVeto,errors]);
  useEffect(()=>{if(result)onScoreChange?.({commercialScore:result.commercialScore,evidenceCoverage:result.evidenceCoverage,evidenceReadiness:result.evidenceReadiness});},[result,onScoreChange]);
  return <Tile className="research-score-panel">
