@@ -14,7 +14,7 @@ export default function InvestmentModelPanel({ opportunityId }: { opportunityId:
   const [savedVersion,setSavedVersion]=useState<number|null>(null);
   const [versions,setVersions]=useState<ResearchFinancialModelRecord[]>([]);
   const [historyError,setHistoryError]=useState("");
-  useEffect(()=>{if(!opportunityId){setVersions([]);return;}void listResearchFinancialModels(opportunityId).then(setVersions).catch(error=>setHistoryError(error instanceof Error?error.message:"无法读取模型历史。"));},[opportunityId]);
+  useEffect(()=>{setInputs(initial);setSavedVersion(null);setHistoryError("");if(!opportunityId){setVersions([]);return;}void listResearchFinancialModels(opportunityId).then(setVersions).catch(error=>setHistoryError(error instanceof Error?error.message:"无法读取模型历史。"));},[opportunityId]);
   const errors = useMemo(() => validateInvestmentInputs(inputs), [inputs]);
   const results = useMemo(() => errors.length ? null : ({
     downside: calculateInvestmentCase(inputs, "downside"),
