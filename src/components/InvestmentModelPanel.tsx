@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { InlineNotification, Select, SelectItem, TextInput, Tile } from "@carbon/react";
+import { Checkbox, InlineNotification, Select, SelectItem, TextInput, Tile } from "@carbon/react";
 import { calculateInvestmentCase, validateInvestmentInputs, type InvestmentInputs } from "../lib/investment-model";
-import { listResearchFinancialModels, saveResearchFinancialModel, type ResearchFinancialModelRecord } from "../lib/api";
+import { listResearchFinancialModels, saveResearchFinancialModel, type ResearchFinancialModelRecord, type ResearchEvidenceRecord } from "../lib/api";
 
 const initial: InvestmentInputs = { currency: "USD", horizonMonths: 36, initialInvestment: 150000, workingCapital: 30000, yearOneRevenue: 240000, annualGrowthRate: 0.2, grossMarginRate: 0.42, operatingExpenseRate: 0.18, fixedMonthlyCost: 5000, taxRate: 0.2, discountRate: 0.15 };
 const money = (value: number, currency: string) => new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(value);
 
-export default function InvestmentModelPanel({ opportunityId }: { opportunityId: string }) {
+export default function InvestmentModelPanel({ opportunityId,evidenceRecords }: { opportunityId: string;evidenceRecords:ResearchEvidenceRecord[] }) {
   const [inputs, setInputs] = useState(initial);
   const [touched, setTouched] = useState(false);
   const [saving,setSaving]=useState(false);
@@ -14,7 +14,8 @@ export default function InvestmentModelPanel({ opportunityId }: { opportunityId:
   const [savedVersion,setSavedVersion]=useState<number|null>(null);
   const [versions,setVersions]=useState<ResearchFinancialModelRecord[]>([]);
   const [historyError,setHistoryError]=useState("");
-  useEffect(()=>{setInputs(initial);setSavedVersion(null);setHistoryError("");if(!opportunityId){setVersions([]);return;}void listResearchFinancialModels(opportunityId).then(setVersions).catch(error=>setHistoryError(error instanceof Error?error.message:"无法读取模型历史。"));},[opportunityId]);
+  const [selectedEvidenceIds,setSelectedEvidenceIds]=useState<string[]>([]);
+  useEffect(()=>{setInputs(initial);setSelectedEvidenceIds([]);setSavedVersion(null);setHistoryError("");if(!opportunityId){setVersions([]);return;}void listResearchFinancialModels(opportunityId).then(setVersions).catch(error=>setHistoryError(error instanceof Error?error.message:"无法读取模型历史。"));},[opportunityId]);
   const errors = useMemo(() => validateInvestmentInputs(inputs), [inputs]);
   const results = useMemo(() => errors.length ? null : ({
     downside: calculateInvestmentCase(inputs, "downside"),
@@ -24,7 +25,7 @@ export default function InvestmentModelPanel({ opportunityId }: { opportunityId:
   function update<K extends keyof InvestmentInputs>(key: K, value: InvestmentInputs[K]) {
     setInputs(current => ({ ...current, [key]: value }));
   }
-  async function submit(event: FormEvent) { event.preventDefault(); setTouched(true); setSaveError("");setSavedVersion(null);if(errors.length||!results||!opportunityId)return;setSaving(true);try{const saved=await saveResearchFinancialModel({opportunity_id:opportunityId,currency:inputs.currency,horizon_months:inputs.horizonMonths,inputs:inputs as unknown as Record<string,unknown>,outputs:results as unknown as Record<string,unknown>,calculation_engine_version:"urania-investment-v1.0",assumptions_snapshot:{source:"user_entered_assumptions",scenario_method:"deterministic_v1"}});setSavedVersion(saved.model_version);setVersions(await listResearchFinancialModels(opportunityId));}catch(error){setSaveError(error instanceof Error?error.message:"财务模型保存失败。");}finally{setSaving(false);}}
+  async function submit(event: FormEvent) { event.preventDefault(); setTouched(true); setSaveError("");setSavedVersion(null);if(errors.length||!results||!opportunityId)return;setSaving(true);try{const saved=await saveResearchFinancialModel({opportunity_id:opportunityId,currency:inputs.currency,horizon_months:inputs.horizonMonths,inputs:inputs as unknown as Record<string,unknown>,outputs:results as unknown as Record<string,unknown>,calculation_engine_version:"urania-investment-v1.0",assumptions_snapshot:{source:"user_entered_assumptions",scenario_method:"deterministic_v1",source_evidence_ids:selectedEvidenceIds}});setSavedVersion(saved.model_version);setVersions(await listResearchFinancialModels(opportunityId));}catch(error){setSaveError(error instanceof Error?error.message:"财务模型保存失败。");}finally{setSaving(false);}}
   const fields: Array<{key: Exclude<keyof InvestmentInputs, "currency">; label: string; rate?: boolean; step?: string}> = [
     {key:"horizonMonths",label:"测算周期（月）",step:"1"},
     {key:"initialInvestment",label:"初始投资额"},{key:"workingCapital",label:"营运资金"},
@@ -35,6 +36,7 @@ export default function InvestmentModelPanel({ opportunityId }: { opportunityId:
   return <Tile className="panel research-portfolio-section investment-model-panel">
     <div className="section-title"><h3>05 · 确定性投资财务模型</h3><span className="muted">引擎 v1.0 · 确定性计算 · 版本化保存</span></div>
     <p className="panel-note">下行情景、基准情景和上行情景由确定性公式计算，不由 AI 生成。当前版本会保存不可覆盖的财务模型快照；所有输入均为待核实假设，不代表实际业绩或投资建议。</p>
+    {evidenceRecords.length>0&&<div className="research-market-evidence-links"><strong>关联财务假设证据</strong>{evidenceRecords.map(item=><Checkbox key={item.id} id={"finance-evidence-"+item.id} labelText={(item.publisher||"来源")+" · "+item.claim_supported.slice(0,100)} checked={selectedEvidenceIds.includes(item.id)} onChange={(_,data)=>setSelectedEvidenceIds(current=>data.checked?[...current,item.id]:current.filter(id=>id!==item.id))}/>)}</div>}
     <form onSubmit={submit}>
       <div className="research-financial-fields">
         <Select id="investment-currency" labelText="报告币种" value={inputs.currency} onChange={e=>update("currency",e.target.value)}>
