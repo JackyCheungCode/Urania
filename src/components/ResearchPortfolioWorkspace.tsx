@@ -273,7 +273,7 @@ export default function ResearchPortfolioWorkspace() {
           <Button type="submit" size="sm" disabled={busy||!opportunityId||aiQuery.trim().length<5||aiQuery.trim().length>500}>提交 AI 研究任务</Button>
         </form>
       </section>
-      <InvestmentModelPanel opportunityId={opportunityId} />
+      <InvestmentModelPanel opportunityId={opportunityId} evidenceRecords={evidence} />
     </div>
     {risks.some(r=>r.hard_veto&&["open","mitigating"].includes(r.status))&&<InlineNotification kind="error" lowContrast title="存在未解除的硬性否决风险" subtitle="当前机会不得进入投资批准；必须先完成风险核验并由授权人员关闭风险。" hideCloseButton/>}
     <div className="research-portfolio-grid">
