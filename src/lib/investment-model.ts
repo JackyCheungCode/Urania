@@ -67,6 +67,7 @@ export function calculateInvestmentCase(input: InvestmentInputs, scenario: Finan
   const years = Math.ceil(input.horizonMonths / 12);
   const initialOutflow = input.initialInvestment + input.workingCapital;
   const cashFlows = [-initialOutflow];
+  const operatingCashFlows: number[] = [];
   let revenueTotal = 0, grossProfitTotal = 0, operatingProfitTotal = 0, taxTotal = 0;
   let cumulative = -initialOutflow, paybackMonths: number | null = null;
   for (let year = 1; year <= years; year++) {
