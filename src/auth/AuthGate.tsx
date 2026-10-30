@@ -5,7 +5,6 @@ import { Button, InlineNotification, PasswordInput, TextInput } from "@carbon/re
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 
 export default function AuthGate({ children }: { children: ReactNode }) {
-  const e2ePreview = import.meta.env.MODE === "test" && import.meta.env.VITE_E2E_BYPASS_AUTH === "true";
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [roleLoading, setRoleLoading] = useState(false);
@@ -59,8 +58,6 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
     setSession(null);
   }
-
-  if (e2ePreview) return <>{children}</>;
 
   if (!isSupabaseConfigured) {
     return <div className="auth-shell"><section className="auth-card">

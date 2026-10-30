@@ -71,16 +71,6 @@ test("responsive acceptance breakpoints cover desktop, tablet and narrow mobile 
 });
 
 
-test("authentication bypass is compiled only for explicit visual-test mode", async () => {
-  const app = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
-  const gate = await readFile(new URL("../src/auth/AuthGate.tsx", import.meta.url), "utf8");
-  const env = await readFile(new URL("../src/vite-env.d.ts", import.meta.url), "utf8");
-  assert.match(app, /import\.meta\.env\.MODE === "test" && import\.meta\.env\.VITE_E2E_BYPASS_AUTH === "true"/);
-  assert.match(gate, /if \(e2ePreview\) return <>{children}<\/>;/);
-  assert.match(env, /VITE_E2E_BYPASS_AUTH\?: string/);
-});
-
-
 test("CRM tab navigation remains reachable on narrow mobile screens", async () => {
   const styles = await readFile(new URL("../src/styles.scss", import.meta.url), "utf8");
   assert.match(styles, /\.crm-tabs\{max-width:100%;overflow-x:auto;overflow-y:hidden;white-space:nowrap/);
