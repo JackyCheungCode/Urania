@@ -129,7 +129,7 @@ export async function handle(request, env) {
     } catch {
       return json({ error: "invalid_json" }, 400, headers);
     }
-    const allowedJobTypes = ["research.search", "research.refresh", "provider.health_check", "product.enrich", "crm.company_discovery", "crm.contact_enrichment"];
+    const allowedJobTypes = ["research.search", "research.refresh", "research.ai_analysis", "provider.health_check", "product.enrich", "crm.company_discovery", "crm.contact_enrichment"];
     if (!allowedJobTypes.includes(job.job_type)) return json({ error: "job_type_not_allowed" }, 400, headers);
     if (typeof job.idempotency_key !== "string" || job.idempotency_key.length < 8 || job.idempotency_key.length > 160) {
       return json({ error: "invalid_idempotency_key" }, 400, headers);
