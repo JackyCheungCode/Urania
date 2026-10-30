@@ -79,8 +79,8 @@ begin
   if not found then raise exception 'pending_decision_not_found' using errcode='P0002'; end if;
   select exists(select 1 from research.risk_register r where r.opportunity_id=v_decision.opportunity_id
     and r.hard_veto and r.status in ('open','mitigating')) into v_veto;
-  if v_veto then raise exception 'active_hard_veto_blocks_approval' using errcode='23514'; end if;
-  update research.investment_decisions set status='approved',approved_by=auth.uid(),approved_at=now()
+  if v_veto and v_decision.decision='invest' then raise exception 'active_hard_veto_blocks_approval' using errcode='23514'; end if;
+  update research.investment_decisions set status=case when v_decision.decision='reject' then 'rejected' else 'approved' end,approved_by=auth.uid(),approved_at=now()
   where id=p_decision_id returning * into v_decision;
   update research.opportunities set decision_status=case v_decision.decision
     when 'invest' then 'invest' when 'validate_more' then 'validate_more'
