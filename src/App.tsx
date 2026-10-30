@@ -192,7 +192,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => Promise<void> }) {
         </div>
       </header>
 
-      <div className="page-content">
+      <Grid fullWidth className="carbon-page-grid"><Column sm={4} md={8} lg={16}><div className="page-content">
         <div className="page-heading">
           <div><div className="eyebrow">{current.eyebrow}</div><h1>{current.title}</h1><p>{current.description}</p></div>
           <div className="heading-actions">
@@ -209,7 +209,7 @@ function Dashboard({ onSignOut }: { onSignOut: () => Promise<void> }) {
         {page === "integrations" && <Integrations toast={toast} />}
         {page === "settings" && <Settings toast={toast} />}
         <footer className="page-footer"><span>© 2026 Urania Intelligence</span><span><span className="status-dot status-dot--warning" />实时模块与演示模块并存 · 请以数据来源标记为准</span><CarbonButton onClick={() => toast("当前版本 0.1.0 · Foundation；生产部署状态需单独核验。")}><ShieldCheck size={13} />版本 0.1.0</CarbonButton></footer>
-      </div>
+      </div></Column></Grid>
     </main>
     {notice && <div className="toast"><Check size={16} />{notice}</div>}
   </div>;
@@ -668,15 +668,27 @@ function Integrations({ toast }: { toast: (s: string) => void }) {
     <section className="panel"><div className="integration-toolbar"><SectionTitle title={isLive?"数据源注册表":"数据源连接器"} /><Select id="carbon-select-app-12" labelText="选择选项" value={category} onChange={e=>setCategory(e.target.value)} aria-label="筛选连接器类别">{categories.map(c=><SelectItem value={c} text={c==="全部类别"?"全部类别":c}/>)}</Select></div>
       {error&&<div className="inline-error"><ShieldCheck size={15}/><span>{error}</span></div>}
       {loading?<div className="empty-state"><Activity size={24}/><strong>正在读取连接器目录…</strong></div>:<div className="connector-list">{isLive?filteredLive.map((x) => <div className="connector-row" key={x.provider_key}><span className="connector-logo connector-logo--brand"><img src={"https://www.google.com/s2/favicons?domain="+(metaFor(x.provider_key,x.display_name).domain||x.provider_key)+ "&sz=128"} alt="" loading="lazy" onError={e=>{e.currentTarget.style.display="none";}}/><span>{x.display_name.slice(0,2)}</span></span><div className="connector-copy"><div><strong>{x.display_name}</strong><Badge>{x.category}</Badge></div><p>{(x.capabilities||[]).join(" · ") || "能力范围待定义"}{x.regions?.length ? " · " + x.regions.join(", ") : ""}</p><small className="table-secondary">授权：{authLabel(x.authorization_status)}</small></div><Badge tone={x.status==="active"||x.status==="configured"?"green":x.status==="error"?"amber":"neutral"}>{stateLabel(x.status)}</Badge>{role==="admin" && x.category!=="database" && x.provider_key!=="cloudflare_workers_ai" ? <CarbonButton kind="secondary" className="button button--secondary button--small" onClick={()=>{setSelectedProvider(x.provider_key);setProviderApiKey("");setAttestation(false);setLicenseScope(x.display_name+" API; internal business research only; no redistribution");setError("");}}>配置密钥<ArrowRight size={13}/></CarbonButton> : <CarbonButton kind="secondary" className="button button--secondary button--small" onClick={() => toast(role==="admin"?"该连接器使用项目级配置或专用绑定。":"仅管理员可配置服务端密钥。")}>查看状态<ArrowRight size={13}/></CarbonButton>}<a className="button button--ghost button--small provider-apply-link" href={metaFor(x.provider_key,x.display_name).url} target="_blank" rel="noreferrer">{metaFor(x.provider_key,x.display_name).label}<ExternalLink size={12}/></a></div>):filteredDemo.map((x) => <div className={"connector-row"} key={x.name}><span className="connector-logo connector-logo--brand"><img src={"https://www.google.com/s2/favicons?domain="+(metaFor(x.name.toLowerCase().includes("openai")?"openai":x.name.toLowerCase().includes("anthropic")?"anthropic":x.name.toLowerCase().includes("gemini")?"gemini":x.name.toLowerCase().includes("cloudflare")?"cloudflare":x.name.toLowerCase().includes("serpapi")?"serpapi":x.name.toLowerCase().includes("dataforseo")?"dataforseo":x.name.toLowerCase().includes("keepa")?"keepa":x.name.toLowerCase().includes("ebay")?"ebay":"google",x.name).domain||"google.com")+"&sz=128"} alt="" loading="lazy"/><span>{x.initials}</span></span><div className="connector-copy"><div><strong>{x.name}</strong><Badge>{x.category}</Badge></div><p>{x.detail}</p></div><Badge tone={x.state==="已连接"?"green":x.state==="待授权"?"amber":"neutral"}>{x.state}</Badge><CarbonButton kind="secondary" className="button button--secondary button--small" onClick={() => toast(x.name+" 需先确认账户授权、API 权限、价格与数据条款")}>查看状态<ArrowRight size={13}/></CarbonButton><a className="button button--ghost button--small provider-apply-link" href={metaFor(x.name.toLowerCase().includes("openai")?"openai":x.name.toLowerCase().includes("anthropic")?"anthropic":x.name.toLowerCase().includes("gemini")?"gemini":x.name.toLowerCase().includes("cloudflare")?"cloudflare_workers_ai":x.name.toLowerCase().includes("serpapi")?"serpapi":x.name.toLowerCase().includes("dataforseo")?"dataforseo":x.name.toLowerCase().includes("keepa")?"keepa":x.name.toLowerCase().includes("ebay")?"ebay_browse":"google_trends",x.name).url} target="_blank" rel="noreferrer">官方申请<ExternalLink size={12}/></a></div>)}</div>}
-      {selectedProvider&&<div className="provider-modal-backdrop" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)setSelectedProvider(null);}}><form className="account-form provider-auth-form" role="dialog" aria-modal="true" aria-labelledby="provider-config-title" onSubmit={(e)=>{e.preventDefault();void saveProviderAuthorization();}}>
-        <div className="account-form-heading"><strong id="provider-config-title">配置 {liveConnectors.find(x=>x.provider_key===selectedProvider)?.display_name || selectedProvider} 凭证</strong><span>密钥将通过已登录的管理员会话发送到后端，并保存至 Supabase Vault。系统不会回显密钥；请勿在共享设备上填写。</span></div>
-        <label className="provider-scope-label">API 密钥 / Token *<div className="provider-key-input"><TextInput id="urania-field-24" labelText="" hideLabel  type={showProviderKey?"text":"password"} required minLength={8} maxLength={4096} autoComplete="new-password" value={providerApiKey} onChange={e=>setProviderApiKey(e.target.value)} placeholder="在此安全输入供应商密钥" /><CarbonButton type="button" className="button button--ghost" onClick={()=>setShowProviderKey(v=>!v)}>{showProviderKey?"隐藏":"显示"}</CarbonButton></div></label>
-        <label className="provider-scope-label">许可与用途范围 *<TextInput id="urania-field-25" labelText="" hideLabel  required minLength={8} maxLength={1000} value={licenseScope} onChange={e=>setLicenseScope(e.target.value)} /></label>
-        <label className="provider-scope-label">数据保留期限（天） *<TextInput id="urania-field-26" labelText="" hideLabel  type="number" min={1} max={3650} required value={retentionDays} onChange={e=>setRetentionDays(e.target.value)} /></label>
-        <label className="provider-attestation"><Checkbox id="carbon-checkbox-98m3km" labelText="" checked={attestation} onChange={(_, {checked})=>setAttestation(checked)}/><span>我已核验该供应商 API 的商业使用许可、配额、费用和数据保留条款，并确认该密钥仅用于授权用途。</span></label>
-        {error&&<p className="auth-error" role="alert">{error}</p>}
-        <div className="account-form-actions"><a className="button button--ghost" href={metaFor(selectedProvider,selectedProvider).url} target="_blank" rel="noreferrer">前往官方申请入口<ExternalLink size={13}/></a><CarbonButton type="button" kind="secondary" className="button button--secondary" onClick={()=>setSelectedProvider(null)}>取消</CarbonButton><CarbonButton type="submit" kind="primary" className="button button--primary" disabled={savingProvider||!attestation}>{savingProvider?"安全保存中…":selectedProvider==="serpapi"?"保存密钥并启用 SerpApi":"保存密钥并登记授权"}</CarbonButton></div>
-      </form></div>}
+      {selectedProvider&&<Modal
+        open
+        size="lg"
+        modalHeading={"配置 " + (liveConnectors.find(x=>x.provider_key===selectedProvider)?.display_name || selectedProvider) + " 凭证"}
+        primaryButtonText={savingProvider?"安全保存中…":selectedProvider==="serpapi"?"保存密钥并启用 SerpApi":"保存密钥并登记授权"}
+        secondaryButtonText="取消"
+        primaryButtonDisabled={savingProvider||!attestation}
+        onRequestClose={()=>setSelectedProvider(null)}
+        onRequestSubmit={()=>void saveProviderAuthorization()}
+        preventCloseOnClickOutside
+      >
+        <div className="provider-modal-content">
+          <p className="provider-modal-description">密钥将通过已登录的管理员会话发送到后端，并保存至 Supabase Vault。系统不会回显密钥；请勿在共享设备上填写。</p>
+          <label className="provider-scope-label">API 密钥 / Token *<div className="provider-key-input"><TextInput id="urania-field-24" labelText="" hideLabel type={showProviderKey?"text":"password"} required minLength={8} maxLength={4096} autoComplete="new-password" value={providerApiKey} onChange={e=>setProviderApiKey(e.target.value)} placeholder="在此安全输入供应商密钥" /><CarbonButton type="button" kind="ghost" onClick={()=>setShowProviderKey(v=>!v)}>{showProviderKey?"隐藏":"显示"}</CarbonButton></div></label>
+          <label className="provider-scope-label">许可与用途范围 *<TextInput id="urania-field-25" labelText="" hideLabel required minLength={8} maxLength={1000} value={licenseScope} onChange={e=>setLicenseScope(e.target.value)} /></label>
+          <label className="provider-scope-label">数据保留期限（天） *<TextInput id="urania-field-26" labelText="" hideLabel type="number" min={1} max={3650} required value={retentionDays} onChange={e=>setRetentionDays(e.target.value)} /></label>
+          <label className="provider-attestation"><Checkbox id="carbon-checkbox-98m3km" labelText="" checked={attestation} onChange={(_, {checked})=>setAttestation(checked)}/><span>我已核验该供应商 API 的商业使用许可、配额、费用和数据保留条款，并确认该密钥仅用于授权用途。</span></label>
+          {error&&<InlineNotification kind="error" lowContrast title="连接器配置失败" subtitle={error} hideCloseButton />}
+          <a className="provider-apply-link" href={metaFor(selectedProvider,selectedProvider).url} target="_blank" rel="noreferrer">前往官方申请入口<ExternalLink size={13}/></a>
+        </div>
+      </Modal>}
       <div className="panel-note"><ShieldCheck size={14}/>密钥使用 Supabase Vault 加密存储，数据库目录只保留 Secret 引用；只有管理员可以写入，密钥不会被 API 返回。当前已实现 SerpApi 的真实搜索适配器；其他供应商可以安全保存凭证并记录授权状态，但必须在接入对应服务端适配器后才能执行真实调用。</div></section>
     <section className="panel"><SectionTitle title="连接器接入原则" /><div className="evidence-grid"><div><span className="evidence-mark evidence-mark--green">01</span><strong>许可先行</strong><p>确认 API 权限、数据用途、保留周期和商业使用范围。</p></div><div><span className="evidence-mark evidence-mark--blue">02</span><strong>统一标准</strong><p>映射为标准记录，并保留供应商原始响应和来源时间。</p></div><div><span className="evidence-mark evidence-mark--amber">03</span><strong>成本可控</strong><p>设置缓存、速率限制、预算上限和失败重试策略。</p></div></div></section>
   </>;
