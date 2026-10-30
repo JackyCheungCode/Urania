@@ -189,3 +189,7 @@ label{color:#393939}
   .research-summary .summary-actions>*{max-width:100%}
   .profit-input-grid,.score-components,.score-risk-grid{grid-template-columns:1fr}
 }
+
+.toast-notification{position:fixed;left:50%;bottom:var(--cds-spacing-07);transform:translateX(-50%);z-index:100;min-width:min(420px,calc(100vw - 24px));max-width:calc(100vw - 24px);box-shadow:var(--cds-shadow)}
+.toast-notification .cds--inline-notification__details{min-width:0}
+@media(max-width:390px){.toast-notification{bottom:12px;min-width:calc(100vw - 16px);max-width:calc(100vw - 16px)}}
