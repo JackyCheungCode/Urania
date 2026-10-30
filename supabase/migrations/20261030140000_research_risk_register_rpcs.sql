@@ -90,7 +90,7 @@ begin
   raise exception 'risk_review_status_and_note_required' using errcode='22023';
  end if;
  update research.risk_register r set status=p_status,reviewed_by=auth.uid(),reviewed_at=now(),
-   mitigation_plan=case when p_status in ('mitigating','resolved','accepted') then coalesce(r.mitigation_plan,'')||case when r.mitigation_plan is null then '' else E'\n' end||trim(p_note) else r.mitigation_plan end
+   mitigation_plan=coalesce(r.mitigation_plan,'')||case when r.mitigation_plan is null then '' else E'\n' end||'['||p_status||'] '||trim(p_note)
  where r.id=p_risk_id and r.created_by=auth.uid()
  and exists(select 1 from research.opportunities o join research.research_projects p on p.id=o.project_id
    where o.id=r.opportunity_id and p.created_by=auth.uid())
