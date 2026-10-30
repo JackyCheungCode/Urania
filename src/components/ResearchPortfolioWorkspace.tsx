@@ -48,6 +48,7 @@ export default function ResearchPortfolioWorkspace() {
   const [findingType,setFindingType]=useState("claim");
   const [findingClaim,setFindingClaim]=useState("");
   const [findingExplanation,setFindingExplanation]=useState("");
+  const [evidenceFindingId,setEvidenceFindingId]=useState("");
   const [risks,setRisks]=useState<ResearchRiskRecord[]>([]);
   const [findings,setFindings]=useState<ResearchFindingRecord[]>([]);
   const [riskCategory,setRiskCategory]=useState("regulatory");
@@ -138,7 +139,7 @@ export default function ResearchPortfolioWorkspace() {
   }
   async function saveEvidence(e:FormEvent) {
     e.preventDefault();if(!opportunityId||!sourceId)return;setBusy(true);setError("");setNotice("");
-    try {await createResearchEvidence({opportunity_id:opportunityId,evidence_source_id:sourceId,evidence_class:evidenceClass,claim_supported:claim,methodology:methodology||undefined,metric_name:metricName||undefined,metric_value:metricValue.trim()?Number(metricValue):null,metric_unit:metricUnit||undefined,geography:evidenceGeography||undefined,published_at:publishedAt||null,observed_at:observedAt||null,confidence:evidenceConfidence.trim()?Number(evidenceConfidence):null});setClaim("");setMethodology("");setMetricName("");setMetricValue("");setMetricUnit("");setEvidenceGeography("");setPublishedAt("");setObservedAt("");setEvidenceConfidence("");await loadEvidence(opportunityId);setNotice("证据记录已保存，当前状态为未验证。");}
+    try {await createResearchEvidence({opportunity_id:opportunityId,evidence_source_id:sourceId,evidence_class:evidenceClass,claim_supported:claim,finding_id:evidenceFindingId||null,methodology:methodology||undefined,metric_name:metricName||undefined,metric_value:metricValue.trim()?Number(metricValue):null,metric_unit:metricUnit||undefined,geography:evidenceGeography||undefined,published_at:publishedAt||null,observed_at:observedAt||null,confidence:evidenceConfidence.trim()?Number(evidenceConfidence):null});setClaim("");setMethodology("");setEvidenceFindingId("");setMetricName("");setMetricValue("");setMetricUnit("");setEvidenceGeography("");setPublishedAt("");setObservedAt("");setEvidenceConfidence("");await loadEvidence(opportunityId);setNotice("证据记录已保存，当前状态为未验证。");}
     catch(err){setError(err instanceof Error?err.message:"保存证据失败。");}finally{setBusy(false);}
   }
   return <Tile className="panel research-portfolio-workspace">
@@ -200,6 +201,7 @@ export default function ResearchPortfolioWorkspace() {
           <Select id="research-evidence-source" labelText="关联来源" value={sourceId} onChange={e=>setSourceId(e.target.value)}>
             {sourceIds.map(s=><SelectItem key={s.id} value={s.id} text={s.label}/>)}
           </Select>
+          <Select id="research-evidence-finding" labelText="关联研究结论（可选）" value={evidenceFindingId} onChange={e=>setEvidenceFindingId(e.target.value)}><SelectItem value="" text="不关联特定结论"/>{findings.map(f=><SelectItem key={f.id} value={f.id} text={f.claim.slice(0,80)}/>)}</Select>
           <Select id="research-evidence-class" labelText="证据类别" value={evidenceClass} onChange={e=>setEvidenceClass(e.target.value)}>
             <SelectItem value="observed_transaction" text="观察到的交易"/><SelectItem value="observed_behavior" text="观察到的行为"/><SelectItem value="proxy_indicator" text="代理指标"/><SelectItem value="model_estimate" text="模型估计"/><SelectItem value="expert_opinion" text="专家意见"/><SelectItem value="primary_research" text="一手调研"/>
           </Select>
