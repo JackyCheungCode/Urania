@@ -54,12 +54,15 @@ test("business workspaces compose Carbon Tile surfaces and Grid/Column layouts",
 
 test("responsive acceptance breakpoints cover desktop, tablet and narrow mobile widths", async () => {
   const styles = await readFile(new URL("../src/styles.scss", import.meta.url), "utf8");
+  assert.match(styles, /@media\(min-width:1280px\)/, "1440px desktop rules must be explicit");
+  assert.match(styles, /@media\(min-width:672px\) and \(max-width:1055px\)/, "1024px tablet rules must be explicit");
   for (const breakpoint of ["1055px", "671px", "390px", "360px"]) {
     assert.match(styles, new RegExp("@media\\s*\\(max-width:\\s*" + breakpoint.replace("px", "\\s*px") + "\\)"), "missing responsive rule at " + breakpoint);
   }
   assert.match(styles, /grid-template-columns:repeat\(16,minmax\(0,1fr\)\)/);
   assert.match(styles, /grid-template-columns:repeat\(8,minmax\(0,1fr\)\)/);
   assert.match(styles, /grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
+  assert.doesNotMatch(styles, /\.evidence-grid\.cds--css-grid,\.evidence-grid\.cds--css-grid/, "duplicate responsive selectors should not accumulate");
 });
 
 
