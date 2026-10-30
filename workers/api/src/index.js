@@ -107,7 +107,7 @@ export async function handle(request, env) {
       version: "0.2.0",
       endpoints: ["GET /health", "GET /api/v1/status", "POST /api/v1/rpc/:allowlisted_function", "POST /api/v1/jobs"],
       auth: "Supabase access token required for RPC calls",
-      dataProviders: "catalog only; third-party providers are not configured by this API"
+      dataProviders: "approved server-side providers only; credentials remain in Supabase Vault; AI analysis does not imply live web research"
     }, 200, headers);
   }
   if (url.pathname === "/api/v1/jobs" && request.method === "POST") {
