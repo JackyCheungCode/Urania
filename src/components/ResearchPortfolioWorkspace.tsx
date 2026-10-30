@@ -3,7 +3,7 @@ import InvestmentModelPanel from "./InvestmentModelPanel";
 import { Button, Checkbox, InlineNotification, Select, SelectItem, TextArea, TextInput, Tile } from "@carbon/react";
 import {
   createResearchProject, listResearchProjects, createResearchOpportunity, listResearchOpportunities,
-  createResearchEvidenceSource, createResearchEvidence, listResearchEvidence, listResearchEvidenceSources, createResearchFinding, createResearchRisk, listResearchRisks, type ResearchRiskRecord,
+  createResearchEvidenceSource, createResearchEvidence, listResearchEvidence, listResearchEvidenceSources, createResearchFinding, createResearchRisk, listResearchRisks, verifyResearchEvidence, type ResearchRiskRecord,
   type ResearchProjectRecord, type ResearchOpportunityRecord, type ResearchEvidenceRecord
 } from "../lib/api";
 
@@ -40,6 +40,8 @@ export default function ResearchPortfolioWorkspace() {
   const [riskDescription,setRiskDescription]=useState("");
   const [riskMitigation,setRiskMitigation]=useState("");
   const [riskVeto,setRiskVeto]=useState(false);
+  const [verificationStatus,setVerificationStatus]=useState<"human_verified"|"disputed"|"rejected">("human_verified");
+  const [verificationNote,setVerificationNote]=useState("");
 
   async function loadProjects() {
     const rows=await listResearchProjects();setProjects(rows);
@@ -77,6 +79,11 @@ export default function ResearchPortfolioWorkspace() {
     e.preventDefault();if(!opportunityId)return;setBusy(true);setError("");setNotice("");
     try {await createResearchFinding({opportunity_id:opportunityId,stage:findingStage,claim:findingClaim,explanation:findingExplanation||undefined,finding_type:findingType as "claim"|"observation"|"estimate"|"contradiction"|"gap"});setFindingClaim("");setFindingExplanation("");setNotice("研究阶段结论已保存；未关联证据的结论仍保持证据不足。");}
     catch(err){setError(err instanceof Error?err.message:"保存研究结论失败。");}finally{setBusy(false);}
+  }
+  async function verifyEvidence(id:string) {
+    if(!verificationNote.trim())return;setBusy(true);setError("");setNotice("");
+    try {await verifyResearchEvidence({evidence_id:id,status:verificationStatus,note:verificationNote});setVerificationNote("");if(opportunityId)await loadEvidence(opportunityId);setNotice("证据核验状态已更新，并写入审计历史。");}
+    catch(err){setError(err instanceof Error?err.message:"证据核验失败。");}finally{setBusy(false);}
   }
   async function saveRisk(e:FormEvent) {
     e.preventDefault();if(!opportunityId)return;setBusy(true);setError("");setNotice("");
@@ -188,7 +195,7 @@ export default function ResearchPortfolioWorkspace() {
       <h3>证据时间线 <span className="muted">· {evidence.length} 条</span></h3>
       {evidence.length===0?<p className="muted">选择一个机会并登记证据后，证据将显示在此处。</p>:evidence.map(e=><article className="research-evidence-row" key={e.id}>
         <div><strong>{e.claim_supported}</strong><p>{e.publisher||"来源未命名"} · {e.source_url||"未提供 URL"}</p><small>{e.evidence_class} · 收集于 {new Date(e.collected_at).toLocaleString()}</small></div>
-        <span className="badge badge--amber">{e.verification_status}</span>
+        <div className="research-evidence-actions"><span className="badge badge--amber">{e.verification_status}</span><Button size="sm" kind="tertiary" disabled={busy||verificationNote.trim().length<8} onClick={()=>void verifyEvidence(e.id)}>提交核验</Button></div>
       </article>)}
     </section>
   </Tile>;
