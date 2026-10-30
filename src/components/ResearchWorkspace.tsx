@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Button, Column, Grid, InlineNotification, Select, SelectItem, TextInput, TextArea, Tile, Tag, ProgressIndicator, ProgressStep, DataTable, Table, TableHead, TableRow, TableHeader, TableBody, TableCell } from "@carbon/react";
-import { Add, ArrowRight, Search, Renew, Launch, Document, WarningAlt, CheckmarkOutline, Time, ChartLine, Globe, Delivery, Security, Calculator, UserMultiple, Task } from "@carbon/react/icons";
+import { useEffect, useState, type FormEvent } from "react";
+import { Button, Column, Grid, InlineNotification, Select, SelectItem, TextInput, Tile, Tag, ProgressIndicator, ProgressStep } from "@carbon/react";
+import { Add, ArrowRight, Search, Renew, Document, WarningAlt, CheckmarkOutline, ChartLine, Globe, Delivery, Security, Calculator, UserMultiple, Task } from "@carbon/react/icons";
 import { createProduct, listProducts, type ProductRecord } from "../lib/api";
 
 const stages = [
