@@ -17,6 +17,10 @@ export default function ResearchPortfolioWorkspace() {
   const [opportunityId,setOpportunityId]=useState("");
   const [projectName,setProjectName]=useState("");
   const [objective,setObjective]=useState("");
+  const [budgetAmount,setBudgetAmount]=useState("");
+  const [budgetCurrency,setBudgetCurrency]=useState("USD");
+  const [projectHorizon,setProjectHorizon]=useState<"under_1y"|"1_3y"|"3_5y"|"over_5y">("1_3y");
+  const [approvalPolicy,setApprovalPolicy]=useState<"owner"|"committee"|"tiered">("tiered");
   const [oppTitle,setOppTitle]=useState("");
   const [oppType,setOppType]=useState<"product"|"software"|"service"|"technology"|"industry"|"business_model"|"other">("product");
   const [publisher,setPublisher]=useState("");
@@ -75,7 +79,7 @@ export default function ResearchPortfolioWorkspace() {
 
   async function saveProject(e:FormEvent) {
     e.preventDefault();setBusy(true);setError("");setNotice("");
-    try {const row=await createResearchProject({name:projectName,objective,geographies:["global"],investment_horizon:"1_3y",approval_policy:"tiered"});setProjectName("");setObjective("");await loadProjects();setProjectId(row.id);setNotice("研究项目已建立。");}
+    try {const row=await createResearchProject({name:projectName,objective,geographies:["global"],investment_horizon:projectHorizon,investment_budget:budgetAmount.trim()?{amount:Number(budgetAmount),currency:budgetCurrency}: {},approval_policy:approvalPolicy});setProjectName("");setObjective("");setBudgetAmount("");await loadProjects();setProjectId(row.id);setNotice("研究项目已建立。");}
     catch(err){setError(err instanceof Error?err.message:"创建项目失败。");}finally{setBusy(false);}
   }
   async function saveOpportunity(e:FormEvent) {
@@ -139,12 +143,16 @@ export default function ResearchPortfolioWorkspace() {
         <form onSubmit={saveProject} className="research-portfolio-form">
           <TextInput id="research-project-name" labelText="项目名称" value={projectName} onChange={e=>setProjectName(e.target.value)} required />
           <TextArea id="research-project-objective" labelText="研究目标（至少 10 个字符）" value={objective} onChange={e=>setObjective(e.target.value)} required rows={2}/>
-          <Button type="submit" size="sm" disabled={busy}>创建项目</Button>
+          <TextInput id="research-project-budget" labelText="项目预算（可选）" type="number" min="0" value={budgetAmount} onChange={e=>setBudgetAmount(e.target.value)} />
+          <Select id="research-project-budget-currency" labelText="预算币种" value={budgetCurrency} onChange={e=>setBudgetCurrency(e.target.value)}>{["USD","EUR","GBP","CNY","TWD","JPY"].map(v=><SelectItem key={v} value={v} text={v}/>)}</Select>
+          <Select id="research-project-horizon" labelText="投资回报周期目标" value={projectHorizon} onChange={e=>setProjectHorizon(e.target.value as "under_1y"|"1_3y"|"3_5y"|"over_5y")}><SelectItem value="under_1y" text="1 年以内"/><SelectItem value="1_3y" text="1–3 年（默认）"/><SelectItem value="3_5y" text="3–5 年"/><SelectItem value="over_5y" text="5 年以上"/></Select>
+          <Select id="research-project-approval-policy" labelText="投资审批制度" value={approvalPolicy} onChange={e=>setApprovalPolicy(e.target.value as "owner"|"committee"|"tiered")}><SelectItem value="tiered" text="分级审批（默认）"/><SelectItem value="committee" text="委员会审批"/><SelectItem value="owner" text="项目负责人审批"/></Select>
+          <Button type="submit" size="sm" disabled={busy||!projectName.trim()||objective.trim().length<10||(budgetAmount.trim()&&(!Number.isFinite(Number(budgetAmount))||Number(budgetAmount)<0))}>创建项目</Button>
         </form>
         <Select id="research-project-select" labelText="当前项目" value={projectId} onChange={e=>setProjectId(e.target.value)}>
           {projects.map(p=><SelectItem key={p.id} value={p.id} text={p.name}/>)}
         </Select>
-        <div className="research-portfolio-list">{projects.map(p=><div key={p.id} className="research-portfolio-row"><strong>{p.name}</strong><span>{p.status} · {p.investment_horizon}</span></div>)}{projects.length===0&&<p className="muted">尚无研究项目。</p>}</div>
+        <div className="research-portfolio-list">{projects.map(p=><div key={p.id} className="research-portfolio-row"><strong>{p.name}</strong><span>{p.status} · {p.investment_horizon} · {p.approval_policy} · {p.investment_budget?.amount?String(p.investment_budget.amount)+" "+String(p.investment_budget.currency||"USD"):"未设预算"}</span></div>)}{projects.length===0&&<p className="muted">尚无研究项目。</p>}</div>
       </section>
       <section className="research-portfolio-section">
         <h3>02 · 机会池</h3>
