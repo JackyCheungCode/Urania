@@ -17,7 +17,7 @@ export default function ResearchPortfolioWorkspace() {
   const [projectName,setProjectName]=useState("");
   const [objective,setObjective]=useState("");
   const [oppTitle,setOppTitle]=useState("");
-  const [oppType,setOppType]=useState("product");
+  const [oppType,setOppType]=useState<"product"|"software"|"service"|"technology"|"industry"|"business_model"|"other">("product");
   const [publisher,setPublisher]=useState("");
   const [sourceType,setSourceType]=useState("web");
   const [sourceUrl,setSourceUrl]=useState("");
@@ -187,6 +187,7 @@ export default function ResearchPortfolioWorkspace() {
           <TextArea id="research-finding-explanation" labelText="解释、边界与待验证事项" value={findingExplanation} onChange={e=>setFindingExplanation(e.target.value)} rows={2}/>
           <Button type="submit" size="sm" disabled={busy||!opportunityId}>保存阶段结论</Button>
         </form>
+        <div className="research-portfolio-list">{findings.map(f=><div key={f.id} className="research-portfolio-row"><strong>{f.claim}</strong><span>{f.stage} · {f.finding_type} · {f.evidence_status}</span></div>)}{findings.length===0&&<p className="muted">尚无阶段结论。</p>}</div>
       </section>
       <MarketSizingPanel />
       <InvestmentModelPanel opportunityId={opportunityId} />
@@ -222,6 +223,7 @@ export default function ResearchPortfolioWorkspace() {
     </div>
     <section className="research-portfolio-evidence">
       <h3>证据时间线 <span className="muted">· {evidence.length} 条</span></h3>
+      <div className="research-verification-tools"><Select id="research-verification-status" labelText="核验结果" value={verificationStatus} onChange={e=>setVerificationStatus(e.target.value as "human_verified"|"disputed"|"rejected")}><SelectItem value="human_verified" text="人工核验通过"/><SelectItem value="disputed" text="存在争议"/><SelectItem value="rejected" text="证据驳回"/></Select><TextInput id="research-verification-note" labelText="核验说明（至少 8 字）" value={verificationNote} onChange={e=>setVerificationNote(e.target.value)}/></div>
       {evidence.length===0?<p className="muted">选择一个机会并登记证据后，证据将显示在此处。</p>:evidence.map(e=><article className="research-evidence-row" key={e.id}>
         <div><strong>{e.claim_supported}</strong><p>{e.publisher||"来源未命名"} · {e.source_url||"未提供 URL"}</p><small>{e.evidence_class} · 收集于 {new Date(e.collected_at).toLocaleString()}</small></div>
         <div className="research-evidence-actions"><span className="badge badge--amber">{e.verification_status}</span><Button size="sm" kind="tertiary" disabled={busy||verificationNote.trim().length<8} onClick={()=>void verifyEvidence(e.id)}>提交核验</Button></div>
