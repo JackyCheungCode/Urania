@@ -41,7 +41,6 @@ export function validateInvestmentInputs(input: InvestmentInputs): string[] {
   for (const key of ["annualGrowthRate", "grossMarginRate", "operatingExpenseRate", "taxRate", "discountRate"] as const) {
     if (!clampRate(input[key])) errors.push(`${key} 必须介于 0% 和 100%。`);
   }
-  if (input.grossMarginRate < input.operatingExpenseRate) errors.push("毛利率低于运营费用率，模型将持续产生经营亏损；请核对假设。");
   return errors;
 }
 
