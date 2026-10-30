@@ -1,8 +1,9 @@
 import { useEffect, useState, type FormEvent } from "react";
+import InvestmentModelPanel from "./InvestmentModelPanel";
 import { Button, InlineNotification, Select, SelectItem, TextArea, TextInput, Tile } from "@carbon/react";
 import {
   createResearchProject, listResearchProjects, createResearchOpportunity, listResearchOpportunities,
-  createResearchEvidenceSource, createResearchEvidence, listResearchEvidence, listResearchEvidenceSources,
+  createResearchEvidenceSource, createResearchEvidence, listResearchEvidence, listResearchEvidenceSources, createResearchFinding,
   type ResearchProjectRecord, type ResearchOpportunityRecord, type ResearchEvidenceRecord
 } from "../lib/api";
 
@@ -27,7 +28,7 @@ export default function ResearchPortfolioWorkspace() {
   const [notice,setNotice]=useState("");
   const [busy,setBusy]=useState(false);
   const [sourceId,setSourceId]=useState("");
-  const [sourceIds,setSourceIds]=useState<Array<{id:string;label:string}>>([]);
+  const [sourceIds,setSourceIds]=useState<Array<{id:string;label:string}>>([]);\n  const [findingStage,setFindingStage]=useState("discovery");\n  const [findingType,setFindingType]=useState("claim");\n  const [findingClaim,setFindingClaim]=useState("");\n  const [findingExplanation,setFindingExplanation]=useState("");
 
   async function loadProjects() {
     const rows=await listResearchProjects();setProjects(rows);
@@ -61,7 +62,7 @@ export default function ResearchPortfolioWorkspace() {
     try {const row=await createResearchEvidenceSource({publisher,source_type:sourceType,source_url:sourceUrl||undefined,license_name:license||undefined});const id=String(row.id||"");setSourceId(id);setSourceIds(v=>[{id,label:publisher},...v.filter(x=>x.id!==id)]);setPublisher("");setSourceUrl("");setLicense("");setNotice("来源登记完成；接下来可将具体证据记录关联到该来源。");}
     catch(err){setError(err instanceof Error?err.message:"来源登记失败。");}finally{setBusy(false);}
   }
-  async function saveEvidence(e:FormEvent) {
+  async function saveFinding(e:FormEvent) {\n    e.preventDefault();if(!opportunityId)return;setBusy(true);setError("");setNotice("");\n    try {await createResearchFinding({opportunity_id:opportunityId,stage:findingStage,claim:findingClaim,explanation:findingExplanation||undefined,finding_type:findingType as "claim"|"observation"|"estimate"|"contradiction"|"gap"});setFindingClaim("");setFindingExplanation("");setNotice("研究阶段结论已保存；未关联证据的结论仍保持证据不足。");}\n    catch(err){setError(err instanceof Error?err.message:"保存研究结论失败。");}finally{setBusy(false);}\n  }\n  async function saveEvidence(e:FormEvent) {
     e.preventDefault();if(!opportunityId||!sourceId)return;setBusy(true);setError("");setNotice("");
     try {await createResearchEvidence({opportunity_id:opportunityId,evidence_source_id:sourceId,evidence_class:evidenceClass,claim_supported:claim,methodology:methodology||undefined});setClaim("");setMethodology("");await loadEvidence(opportunityId);setNotice("证据记录已保存，当前状态为未验证。");}
     catch(err){setError(err instanceof Error?err.message:"保存证据失败。");}finally{setBusy(false);}
@@ -128,7 +129,7 @@ export default function ResearchPortfolioWorkspace() {
         </form>
       </section>
     </div>
-    <section className="research-portfolio-evidence">
+    <div className="research-portfolio-grid">\n      <section className="research-portfolio-section">\n        <h3>05 · 阶段研究结论</h3>\n        <p className="panel-note">按九阶段研究流程记录主张、观察、估计、矛盾与数据缺口。当前接口不自动将主张标记为已验证。</p>\n        <form onSubmit={saveFinding} className="research-portfolio-form">\n          <Select id="research-finding-stage" labelText="研究阶段" value={findingStage} onChange={e=>setFindingStage(e.target.value)}>\n            <SelectItem value="discovery" text="机会发现"/><SelectItem value="standardization" text="定义与标准化"/><SelectItem value="demand" text="市场需求"/><SelectItem value="competition" text="竞争分析"/><SelectItem value="customer" text="客户研究"/><SelectItem value="supply_chain" text="供应链"/><SelectItem value="compliance" text="合规与风险"/><SelectItem value="financial" text="财务模型"/><SelectItem value="investment" text="投资评估"/><SelectItem value="monitoring" text="投后监测"/>\n          </Select>\n          <Select id="research-finding-type" labelText="结论类型" value={findingType} onChange={e=>setFindingType(e.target.value)}>\n            <SelectItem value="claim" text="研究主张"/><SelectItem value="observation" text="观察事实"/><SelectItem value="estimate" text="模型估计"/><SelectItem value="contradiction" text="相互矛盾"/><SelectItem value="gap" text="证据缺口"/>\n          </Select>\n          <TextArea id="research-finding-claim" labelText="结论 / 主张" value={findingClaim} onChange={e=>setFindingClaim(e.target.value)} required rows={2}/>\n          <TextArea id="research-finding-explanation" labelText="解释、边界与待验证事项" value={findingExplanation} onChange={e=>setFindingExplanation(e.target.value)} rows={2}/>\n          <Button type="submit" size="sm" disabled={busy||!opportunityId}>保存阶段结论</Button>\n        </form>\n      </section>\n      <InvestmentModelPanel />\n    </div>\n    <section className="research-portfolio-evidence">
       <h3>证据时间线 <span className="muted">· {evidence.length} 条</span></h3>
       {evidence.length===0?<p className="muted">选择一个机会并登记证据后，证据将显示在此处。</p>:evidence.map(e=><article className="research-evidence-row" key={e.id}>
         <div><strong>{e.claim_supported}</strong><p>{e.publisher||"来源未命名"} · {e.source_url||"未提供 URL"}</p><small>{e.evidence_class} · 收集于 {new Date(e.collected_at).toLocaleString()}</small></div>
