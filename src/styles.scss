@@ -111,7 +111,7 @@ label{color:#393939}
 .provider-modal-content .provider-apply-link{justify-self:start}
 
 /* Carbon responsive grid contract: 16 columns / 8 columns / 4 columns. */
-.metric-grid.cds--css-grid,.crm-metrics.cds--css-grid,.dashboard-grid.cds--css-grid,.lower-grid.cds--css-grid,.evidence-grid.cds--css-grid,.evidence-grid.cds--css-grid,
+.metric-grid.cds--css-grid,.crm-metrics.cds--css-grid,.dashboard-grid.cds--css-grid,.lower-grid.cds--css-grid,.evidence-grid.cds--css-grid,
 .research-cards.cds--css-grid,.intelligence-grid.cds--css-grid,.integration-summary.cds--css-grid,.settings-grid.cds--css-grid{
   display:grid;
   grid-template-columns:repeat(16,minmax(0,1fr));
@@ -131,14 +131,14 @@ label{color:#393939}
 .search-popover .cds--btn{width:100%;justify-content:flex-start;text-align:left}
 .toast{border-radius:0;background:var(--cds-inverse-background);color:var(--cds-inverse-text)}
 @media(max-width:1055px){
-  .metric-grid.cds--css-grid,.crm-metrics.cds--css-grid,.dashboard-grid.cds--css-grid,.lower-grid.cds--css-grid,.evidence-grid.cds--css-grid,.evidence-grid.cds--css-grid,
+  .metric-grid.cds--css-grid,.crm-metrics.cds--css-grid,.dashboard-grid.cds--css-grid,.lower-grid.cds--css-grid,.evidence-grid.cds--css-grid,
   .research-cards.cds--css-grid,.intelligence-grid.cds--css-grid,.integration-summary.cds--css-grid,.settings-grid.cds--css-grid{
     grid-template-columns:repeat(8,minmax(0,1fr));
   }
   .dashboard-grid.cds--css-grid>.cds--col,.lower-grid.cds--css-grid>.cds--col{grid-column:span 8}
 }
 @media(max-width:671px){
-  .metric-grid.cds--css-grid,.crm-metrics.cds--css-grid,.dashboard-grid.cds--css-grid,.lower-grid.cds--css-grid,.evidence-grid.cds--css-grid,.evidence-grid.cds--css-grid,
+  .metric-grid.cds--css-grid,.crm-metrics.cds--css-grid,.dashboard-grid.cds--css-grid,.lower-grid.cds--css-grid,.evidence-grid.cds--css-grid,
   .research-cards.cds--css-grid,.intelligence-grid.cds--css-grid,.integration-summary.cds--css-grid,.settings-grid.cds--css-grid{
     grid-template-columns:repeat(4,minmax(0,1fr));
     row-gap:var(--cds-spacing-04);
@@ -193,3 +193,17 @@ label{color:#393939}
 .toast-notification{position:fixed;left:50%;bottom:var(--cds-spacing-07);transform:translateX(-50%);z-index:100;min-width:min(420px,calc(100vw - 24px));max-width:calc(100vw - 24px);box-shadow:var(--cds-shadow)}
 .toast-notification .cds--inline-notification__details{min-width:0}
 @media(max-width:390px){.toast-notification{bottom:12px;min-width:calc(100vw - 16px);max-width:calc(100vw - 16px)}}
+
+/* Wide desktop acceptance viewport (1440px and above). */
+@media(min-width:1280px){
+  .page-content{max-width:1580px}
+  .metric-grid.cds--css-grid,.crm-metrics.cds--css-grid,.dashboard-grid.cds--css-grid,.lower-grid.cds--css-grid,
+  .research-cards.cds--css-grid,.intelligence-grid.cds--css-grid,.integration-summary.cds--css-grid,.settings-grid.cds--css-grid,.evidence-grid.cds--css-grid{
+    grid-template-columns:repeat(16,minmax(0,1fr));
+  }
+}
+/* Tablet acceptance viewport (1024px). */
+@media(min-width:672px) and (max-width:1055px){
+  .page-content{padding-inline:18px}
+  .dashboard-grid.cds--css-grid>.cds--col,.lower-grid.cds--css-grid>.cds--col{grid-column:span 8}
+}
