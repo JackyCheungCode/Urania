@@ -1,5 +1,6 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { Calculator, CheckCircle2, Save, ShieldCheck } from "lucide-react";
+import { Calculator, CheckmarkFilled, Save, Security } from "@carbon/icons-react";
+import { Button, InlineNotification, Select, SelectItem, TextInput, TextArea } from "@carbon/react";
 import { createProfitScenario, type ProductRecord } from "../lib/api";
 import { isSupabaseConfigured } from "../lib/supabase";
 
@@ -56,13 +57,13 @@ export default function ProfitCalculator({products,toast}:Props){
   }
   const setB2C=(key:keyof typeof initialB2C,value:string)=>setB2c(prev=>({...prev,[key]:value}));
   const setB2B=(key:keyof typeof initialB2B,value:string)=>setB2b(prev=>({...prev,[key]:value}));
-  const field=(label:string,key:string,value:string,onChange:(v:string)=>void,unit?:string,step="0.01")=><label className="profit-field" key={key}><span>{label}{unit&&<small>{unit}</small>}</span><input type="number" min="0" step={step} value={value} onChange={e=>onChange(e.target.value)} required/></label>;
+  const field=(label:string,key:string,value:string,onChange:(v:string)=>void,unit?:string,step="0.01")=><TextInput key={key} id={`profit-${key}`} className="profit-field" labelText={unit?`${label} (${unit})`:label} type="number" min="0" step={step} value={value} onChange={e=>onChange(e.target.value)} required/>;
 
   return <section className="panel profit-calculator">
-    <div className="crm-toolbar"><div><div className="profit-title"><span className="profit-icon"><Calculator size={18}/></span><div><h3>利润情景计算器</h3><p className="panel-subtitle">按输入假设进行确定性计算；不是供应商报价、税务意见或实际销售数据。</p></div></div></div><div className="summary-actions"><select value={currency} onChange={e=>setCurrency(e.target.value)} aria-label="利润情景币种"><option>USD</option><option>EUR</option><option>GBP</option><option>CNY</option><option>PLN</option></select></div></div>
-    <div className="profit-tabs"><button type="button" className={scenario==="b2c"?"profit-tab profit-tab--active":"profit-tab"} onClick={()=>setScenario("b2c")}>B2C 单件贡献利润</button><button type="button" className={scenario==="b2b"?"profit-tab profit-tab--active":"profit-tab"} onClick={()=>setScenario("b2b")}>B2B 订单利润</button></div>
+    <div className="crm-toolbar"><div><div className="profit-title"><span className="profit-icon"><Calculator size={18}/></span><div><h3>利润情景计算器</h3><p className="panel-subtitle">按输入假设进行确定性计算；不是供应商报价、税务意见或实际销售数据。</p></div></div></div><div className="summary-actions"><Select id="profit-currency" labelText="币种" value={currency} onChange={e=>setCurrency(e.target.value)}><SelectItem value="USD" text="USD"/><SelectItem value="EUR" text="EUR"/><SelectItem value="GBP" text="GBP"/><SelectItem value="CNY" text="CNY"/><SelectItem value="PLN" text="PLN"/></Select></div></div>
+    <div className="profit-tabs"><Button type="button" kind={scenario==="b2c"?"primary":"tertiary"} onClick={()=>setScenario("b2c")}>B2C 单件贡献利润</Button><Button type="button" kind={scenario==="b2b"?"primary":"tertiary"} onClick={()=>setScenario("b2b")}>B2B 订单利润</Button></div>
     <form onSubmit={save}>
-      {products.length>0&&<label className="profit-product">关联产品（可选）<select value={productId} onChange={e=>setProductId(e.target.value)}><option value="">不关联产品</option>{products.map(p=><option key={p.id} value={p.id}>{p.canonical_name}</option>)}</select></label>}
+      {products.length>0&&<Select id="profit-product" labelText="关联产品（可选）" value={productId} onChange={e=>setProductId(e.target.value)}><SelectItem value="" text="不关联产品"/>{products.map(p=><SelectItem key={p.id} value={p.id} text={p.canonical_name}/>)}</Select>}
       {scenario==="b2c"?<div className="profit-input-grid">
         {field("零售价","unit_price",b2c.unit_price,v=>setB2C("unit_price",v),currency)}
         {field("采购成本","sourcing_cost",b2c.sourcing_cost,v=>setB2C("sourcing_cost",v),currency)}
@@ -85,10 +86,10 @@ export default function ProfitCalculator({products,toast}:Props){
         {field("汇率风险准备","fx_reserve_pct",b2b.fx_reserve_pct,v=>setB2B("fx_reserve_pct",v),"%")}
         {field("其他单件成本","other_costs",b2b.other_costs,v=>setB2B("other_costs",v),currency)}
       </div>}
-      <label className="profit-assumptions">假设 / 来源说明<textarea rows={2} maxLength={4000} value={assumptions} onChange={e=>setAssumptions(e.target.value)} placeholder="例如：供应商报价日期、物流估算来源、平台费率依据、目标市场…"/></label>
+      <TextArea id="profit-assumptions" labelText="假设 / 来源说明" rows={2} maxLength={4000} value={assumptions} onChange={e=>setAssumptions(e.target.value)} placeholder="例如：供应商报价日期、物流估算来源、平台费率依据、目标市场…"/>
       <div className="profit-results"><div><span>收入</span><strong>{money(result.revenue,currency)}</strong></div><div><span>总成本</span><strong>{money(result.costs,currency)}</strong></div><div className={result.profit>=0?"profit-positive":"profit-negative"}><span>贡献利润</span><strong>{money(result.profit,currency)}</strong></div><div><span>贡献利润率</span><strong>{result.margin.toFixed(2)}%</strong></div>{scenario==="b2b"&&<div><span>盈亏平衡数量</span><strong>{result.breakEven===null?"无法达到":result.breakEven.toLocaleString()+" 件"}</strong></div>}</div>
-      {error&&<p className="auth-error" role="alert">{error}</p>}{savedId&&<p className="auth-info" role="status"><CheckCircle2 size={14}/>已保存情景 ID：{savedId}</p>}
-      <div className="profit-actions"><span><ShieldCheck size={14}/>前端实时预览；保存时由数据库独立复算。</span><button className="button button--primary" type="submit" disabled={saving||!valid||!isSupabaseConfigured}><Save size={14}/>{saving?"保存中…":"保存利润情景"}</button></div>
+      {error&&<InlineNotification kind="error" lowContrast title="计算器错误" subtitle={error} hideCloseButton/>}{savedId&&<InlineNotification kind="success" lowContrast title="已保存利润情景" subtitle={`情景 ID：${savedId}`} hideCloseButton/>}
+      <div className="profit-actions"><span><Security size={14}/>前端实时预览；保存时由数据库独立复算。</span><Button kind="primary" type="submit" disabled={saving||!valid||!isSupabaseConfigured}><Save size={14}/>{saving?"保存中…":"保存利润情景"}</Button></div>
     </form>
   </section>;
 }
