@@ -212,7 +212,7 @@ export default function ResearchPortfolioWorkspace() {
           <TextInput id="research-evidence-published" labelText="发布日期" type="date" value={publishedAt} onChange={e=>setPublishedAt(e.target.value)}/>
           <TextInput id="research-evidence-observed" labelText="观察日期" type="date" value={observedAt} onChange={e=>setObservedAt(e.target.value)}/>
           <TextInput id="research-evidence-confidence" labelText="研究人员置信度（0–1）" type="number" min="0" max="1" step="0.05" value={evidenceConfidence} onChange={e=>setEvidenceConfidence(e.target.value)}/>
-          <Button type="submit" size="sm" disabled={busy||!opportunityId||!sourceId}>保存证据</Button>
+          <Button type="submit" size="sm" disabled={busy||!opportunityId||!sourceId||(metricValue.trim().length>0&&!Number.isFinite(Number(metricValue)))||(evidenceConfidence.trim().length>0&&(!Number.isFinite(Number(evidenceConfidence))||Number(evidenceConfidence)<0||Number(evidenceConfidence)>1))}>保存证据</Button>
         </form>
       </section>
     </div>
