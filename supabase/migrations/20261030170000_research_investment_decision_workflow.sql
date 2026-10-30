@@ -9,8 +9,8 @@ begin
     new.id,auth.uid(),
     case when tg_op='INSERT' then 'submitted' else 'status_changed' end,
     case when tg_op='INSERT' then '{}'::jsonb else jsonb_build_object('status',old.status,'decision',old.decision) end,
-    jsonb_build_object('status',new.status,'decision',new.decision,'hard_veto_triggered',new.hard_veto_triggered),
-    null
+    jsonb_build_object('status',new.status,'decision',new.decision,'hard_veto_triggered',new.hard_veto_triggered,'rationale',new.rationale),
+    new.rationale
   );
   return new;
 end $$;
@@ -80,7 +80,7 @@ begin
   select exists(select 1 from research.risk_register r where r.opportunity_id=v_decision.opportunity_id
     and r.hard_veto and r.status in ('open','mitigating')) into v_veto;
   if v_veto and v_decision.decision='invest' then raise exception 'active_hard_veto_blocks_approval' using errcode='23514'; end if;
-  update research.investment_decisions set status=case when v_decision.decision='reject' then 'rejected' else 'approved' end,approved_by=auth.uid(),approved_at=now()
+  update research.investment_decisions set status=case when v_decision.decision='reject' then 'rejected' else 'approved' end,approved_by=auth.uid(),approved_at=now(),rationale=rationale||case when nullif(trim(coalesce(p_note,'')),'') is null then '' else E'\nApproval note: '||trim(p_note) end
   where id=p_decision_id returning * into v_decision;
   update research.opportunities set decision_status=case v_decision.decision
     when 'invest' then 'invest' when 'validate_more' then 'validate_more'
