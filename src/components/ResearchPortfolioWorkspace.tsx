@@ -235,7 +235,7 @@ export default function ResearchPortfolioWorkspace() {
         </form>
         <div className="research-portfolio-list">{findings.map(f=><div key={f.id} className="research-portfolio-row"><strong>{f.claim}</strong><span>{f.stage} · {f.finding_type} · {f.evidence_status}</span></div>)}{findings.length===0&&<p className="muted">尚无阶段结论。</p>}</div>
       </section>
-      <MarketSizingPanel opportunityId={opportunityId} />
+      <MarketSizingPanel opportunityId={opportunityId} evidence={evidence} />
       <ResearchScorePanel opportunityId={opportunityId} activeHardVeto={risks.some(r=>r.hard_veto&&["open","mitigating"].includes(r.status))} onScoreChange={setScoreSnapshot} />
       <section className="research-portfolio-section">
         <h3>05A · AI 研究任务</h3>
