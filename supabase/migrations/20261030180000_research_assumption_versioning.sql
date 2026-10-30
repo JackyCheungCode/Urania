@@ -14,6 +14,7 @@ begin
  end if;
  if not exists(select 1 from research.opportunities o join research.research_projects p on p.id=o.project_id
    where o.id=p_opportunity_id and p.created_by=auth.uid()) then raise exception 'opportunity_not_found' using errcode='P0002';end if;
+ perform 1 from research.opportunities where id=p_opportunity_id for update;
  if coalesce(array_length(p_source_evidence_ids,1),0)>0 and exists(
    select 1 from unnest(p_source_evidence_ids) x(id)
    where not exists(select 1 from research.evidence_records e where e.id=x.id and e.opportunity_id=p_opportunity_id and e.created_by=auth.uid())
