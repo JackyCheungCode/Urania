@@ -595,3 +595,14 @@ export type ResearchAuditEvent={event_type:string;entity_id:string;action:string
 export async function listResearchAuditEvents(opportunityId:string):Promise<ResearchAuditEvent[]>{
  return await rpc("urania_research_list_audit_events",{p_opportunity_id:opportunityId},["admin","researcher"]);
 }
+
+
+export type ResearchSearchResultRecord={id:string;job_id:string;query:string;rank:number;title:string;url:string|null;snippet:string|null;displayed_url:string|null;market_country:string|null;observed_at:string;fetched_at:string};
+export async function createResearchSearchJob(input:{opportunity_id:string;query:string;market_country?:string;idempotency_key:string}):Promise<{id:string;status:string}>{
+ if(!input.opportunity_id||input.query.trim().length<2)throw new Error("研究机会和搜索词为必填项。");
+ return createCollectionJob({job_type:"research.search",provider_key:"serpapi",market_country:input.market_country||null,
+  input_payload:{query:input.query.trim(),opportunity_id:input.opportunity_id},idempotency_key:input.idempotency_key});
+}
+export async function listResearchSearchResults(opportunityId:string):Promise<ResearchSearchResultRecord[]>{
+ return await rpc("urania_research_list_search_results",{p_opportunity_id:opportunityId},["admin","researcher"]);
+}
