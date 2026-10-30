@@ -102,9 +102,11 @@ function LoginScreen({ onLogin }: { onLogin: (email: string, password: string) =
 }
 
 export default function App() {
-  const [signedIn, setSignedIn] = useState(false);
-  const [authReady, setAuthReady] = useState(false);
+  const e2ePreview = import.meta.env.MODE === "test" && import.meta.env.VITE_E2E_BYPASS_AUTH === "true";
+  const [signedIn, setSignedIn] = useState(e2ePreview);
+  const [authReady, setAuthReady] = useState(e2ePreview);
   useEffect(() => {
+    if (e2ePreview) return;
     if (!supabase) { setAuthReady(true); return; }
     supabase.auth.getSession().then(({ data }) => setSignedIn(Boolean(data.session))).finally(() => setAuthReady(true));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -112,7 +114,7 @@ export default function App() {
       setAuthReady(true);
     });
     return () => subscription.unsubscribe();
-  }, []);
+  }, [e2ePreview]);
   async function login(email: string, password: string) {
     if (!supabase) throw new Error("认证服务尚未配置，请联系管理员。");
     const { error } = await supabase.auth.signInWithPassword({ email, password });
