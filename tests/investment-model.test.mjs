@@ -29,7 +29,7 @@ test("computes deterministic downside, base, and upside cases", () => {
   assert.ok(Number.isFinite(base.npv));
   assert.ok(Number.isFinite(base.roi));
   assert.equal(base.cashFlows.reduce((sum, value) => sum + value, 0), base.endingCashFlow);
-  assert.equal(base.cashFlows.at(-1), base.netOperatingCash / 3 + sample.workingCapital);
+  assert.equal(base.endingCashFlow, base.netOperatingCash - sample.initialInvestment);
   assert.ok(base.paybackMonths === null || base.paybackMonths > 0);
 });
 
