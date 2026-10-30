@@ -148,7 +148,7 @@ export default function ResearchPortfolioWorkspace() {
         <h3>02 · 机会池</h3>
         <form onSubmit={saveOpportunity} className="research-portfolio-form">
           <TextInput id="research-opportunity-title" labelText="机会名称" value={oppTitle} onChange={e=>setOppTitle(e.target.value)} required/>
-          <Select id="research-opportunity-type" labelText="机会类型" value={oppType} onChange={e=>setOppType(e.target.value)}>
+          <Select id="research-opportunity-type" labelText="机会类型" value={oppType} onChange={e=>setOppType(e.target.value as "product"|"software"|"service"|"technology"|"industry"|"business_model"|"other")}>
             <SelectItem value="product" text="实体产品"/><SelectItem value="software" text="软件"/><SelectItem value="service" text="服务"/><SelectItem value="technology" text="技术"/><SelectItem value="industry" text="行业"/><SelectItem value="business_model" text="商业模式"/><SelectItem value="other" text="其他"/>
           </Select>
           <Button type="submit" size="sm" disabled={busy||!projectId}>新增机会</Button>
