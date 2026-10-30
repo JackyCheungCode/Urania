@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { ArrowRight, Locked, Security, Idea } from "@carbon/icons-react";
+import { ArrowRight, Locked, Security, Idea } from "@carbon/react/icons";
 import { Button, InlineNotification, PasswordInput, TextInput } from "@carbon/react";
 import { isSupabaseConfigured, supabase } from "../lib/supabase";
 
