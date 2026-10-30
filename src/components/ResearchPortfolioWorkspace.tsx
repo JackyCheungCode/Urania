@@ -33,7 +33,8 @@ export default function ResearchPortfolioWorkspace() {
   const [findingType,setFindingType]=useState("claim");
   const [findingClaim,setFindingClaim]=useState("");
   const [findingExplanation,setFindingExplanation]=useState("");
-  const [risks,setRisks]=useState<ResearchRiskRecord[]>([]);\n  const [findings,setFindings]=useState<ResearchFindingRecord[]>([]);
+  const [risks,setRisks]=useState<ResearchRiskRecord[]>([]);
+  const [findings,setFindings]=useState<ResearchFindingRecord[]>([]);
   const [riskCategory,setRiskCategory]=useState("regulatory");
   const [riskSeverity,setRiskSeverity]=useState("high");
   const [riskLikelihood,setRiskLikelihood]=useState("medium");
