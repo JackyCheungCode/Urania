@@ -23,7 +23,7 @@ create or replace function public.urania_research_list_projects()
 returns setof jsonb
 language sql stable security invoker set search_path = ''
 as $$
-  select jsonb_build_object('id',p.id,'name',p.name,'objective',p.objective,'status',p.status,'geographies',p.geographies,'industries',p.industries,'investment_horizon',p.investment_horizon,'created_at',p.created_at)
+  select jsonb_build_object('id',p.id,'name',p.name,'objective',p.objective,'status',p.status,'geographies',p.geographies,'industries',p.industries,'investment_horizon',p.investment_horizon,'investment_budget',p.investment_budget,'approval_policy',p.approval_policy,'created_at',p.created_at)
   from research.research_projects p where p.created_by=auth.uid() order by p.created_at desc
 $$;
 
