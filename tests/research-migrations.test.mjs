@@ -32,3 +32,12 @@ test("investment approval checks active hard veto in the database",async()=>{
  assert.match(sql,/active_hard_veto_blocks_approval/);
  assert.match(sql,/r\.hard_veto and r\.status in \('open','mitigating'\)/);
 });
+
+
+test("web search results are scoped to the owning user and opportunity",async()=>{
+ const sql=await readFile(new URL("20261030230000_research_search_results_api.sql",directory),"utf8");
+ assert.match(sql,/security definer/i);
+ assert.match(sql,/j\.created_by=auth\.uid\(\)/);
+ assert.match(sql,/input_payload->>'opportunity_id'/);
+ assert.match(sql,/p\.created_by=auth\.uid\(\)/);
+});
